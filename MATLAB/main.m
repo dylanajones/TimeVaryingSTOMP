@@ -85,44 +85,73 @@ cov_mat = (cov_mat + cov_mat.') / 2;
 cov_array(:,:,1) = cov_mat;
 cov_array(:,:,2) = cov_mat;
 
-K = num_paths
+K = num_paths;
+
+% Variable to hold all noisy paths generated
+noisy_paths = zeros(K,2,N);
+
+% NOTE: still need to add no pertubation to first and last waypoint, not
+% done automatically as sugguested by the paper
+
+% Generating the pertubations to the initial path
+for i = 1:K
+    temp_eps = mvnrnd(zeros(2,N),cov_array);
+    temp_eps = temp_eps.';
+    
+    temp_eps(1,1) = 0;
+    temp_eps(1,2) = 0;
+    
+    temp_eps(N,1) = 0;
+    temp_eps(N,2) = 0;
+    
+    temp_noisy_path = path(:,1:2) + temp_eps;
+    
+    noisy_paths(i,1:2,:) = temp_noisy_path.';
+    
+end
+
+
+figure(1)
+hold on
+plot(path(:,1),path(:,2),'r')
+
+x = zeros(N,1);
+y = x;
 
 for i = 1:K
-eps = mvnrnd(zeros(2,N),cov_array);
-eps = eps.';
-
-noisy_path = path(:,1:2) + eps;
-
-%plot(path(:,1),path(:,2),'r',noisy_path(:,1),noisy_path(:,2),'g')
-
-cost = zeros(N,1);
-
-for i = 1:N
-    cost(i) = cost_function(path(i,1:2),map);
+    for j = 1:N
+        x(j) = noisy_paths(i,1,j);
+        y(j) = noisy_paths(i,2,j);
+    end
+    plot(x,y,'g')
 end
+hold off
 
-% These are currently wrong, NEED TO UPDATE
-max_cost = max(cost);
-min_cost = min(cost);
-
-prob = zeros(N,1);
-
-h = 10;
-
-for i = 1:N
-    prob(i) = exp(-h*((cost(i)-min_cost)/(max_cost-min_cost)));
-end
-
-update_vector = zeros(N,2);
-
-for i = 1:N
-    update_vector(i,:) = eps(i,:) * prob(i);
-end
-
-new_path = path(:,1:2) + update_vector;
-
-plot(path(:,1),path(:,2),'r',noisy_path(:,1),noisy_path(:,2),'g',new_path(:,1),new_path(:,2),'b')
-rectangle('Position',[4,4,2,2])
-
-
-
+% cost = zeros(N,1);
+% 
+% for i = 1:N
+%     cost(i) = cost_function(path(i,1:2),map);
+% end
+% 
+% % These are currently wrong, NEED TO UPDATE
+% max_cost = max(cost);
+% min_cost = min(cost);
+% 
+% prob = zeros(N,1);
+% 
+% h = 10;
+% 
+% for i = 1:N
+%     prob(i) = exp(-h*((cost(i)-min_cost)/(max_cost-min_cost)));
+% end
+% 
+% update_vector = zeros(N,2);
+% 
+% for i = 1:N
+%     update_vector(i,:) = eps(i,:) * prob(i);
+% end
+% 
+% new_path = path(:,1:2) + update_vector;
+% 
+% plot(path(:,1),path(:,2),'r',noisy_path(:,1),noisy_path(:,2),'g',new_path(:,1),new_path(:,2),'b')
+% rectangle('Position',[4,4,2,2])
