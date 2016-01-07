@@ -79,6 +79,7 @@ K = num_paths;
 
 % Variable to hold all noisy paths generated
 noisy_paths = zeros(K,2,N);
+eps_mat = zeros(K,2,N);
 
 % Generating the pertubations to the initial path
 for i = 1:K
@@ -93,6 +94,7 @@ for i = 1:K
     
     temp_noisy_path = path(:,1:2) + temp_eps;
     
+    eps_mat(i,1:2,:) = temp_eps.';
     noisy_paths(i,1:2,:) = temp_noisy_path.';
     % Note: accessing noisy_paths: (path_number, dimension, waypoint_number)
 end
@@ -128,30 +130,43 @@ for i = 1:K
     end   
 end
 
+% Finding the minimum and maximum costs for each watypoint number
 max_costs = max(cost_mat.');
-min_costs = min(c
+min_costs = min(cost_mat.');
 
-% for i = 1:N
-%     cost(i) = cost_function(path(i,1:2),map);
-% end
-% 
-% % These are currently wrong, NEED TO UPDATE
-% max_cost = max(cost);
-% min_cost = min(cost);
-% 
-% prob = zeros(N,1);
-% 
-% h = 10;
-% 
-% for i = 1:N
-%     prob(i) = exp(-h*((cost(i)-min_cost)/(max_cost-min_cost)));
-% end
-% 
-% update_vector = zeros(N,2);
-% 
-% for i = 1:N
-%     update_vector(i,:) = eps(i,:) * prob(i);
-% end
+% Finding the probability contribution of each waypoint
+
+prob_mat = zeros(N,K);
+e_mat = zeros(N,K);
+
+h = 10;
+
+% For this loop we go through the waypoints on the outside and the paths on
+% the inside as we calculate the probability
+for i = 1:N
+    e_sum = 0;
+    
+    %TODO: NEED TO ADD CODE TO ACCOUNT FOR MIN AND MAX COST BEING EQUAL
+    if max_costs(i) == min_costs
+    for j = 1:K
+        e_mat(i,j) = exp(-h*((cost_mat(i,j) - min_costs(i))/(max_costs(i) - min_costs(i))));
+        e_sum = e_sum + e_mat(i,j);
+    end
+    
+    prob_mat(i,:) = e_mat(i,:) / e_sum;
+end
+ 
+update_vector = zeros(N,2);
+
+% Loop through and add all contributions into update vector
+for i = 1:N
+    for j = 1:K
+        update_vector(i,:) = update_vector(i,:) + eps_mat(j,:,i) * prob_mat(i,j);
+    end
+end
+
+% TODO: NEED TO SCALE THE UPDTAE VECTOR HERE
+
 % 
 % new_path = path(:,1:2) + update_vector;
 % 
