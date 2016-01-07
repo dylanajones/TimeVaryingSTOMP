@@ -16,4 +16,7 @@ function [cost] = cost_function(waypoint, map)
     if ((x > 4) && (x < 6) && (y > 4) && (y < 6))
         cost = 1 / sqrt((x-5)^2+(y-5)^2);
     end
+    
+    % Adding .1 to every waypoint to ensure no divid by zero errors
+    cost = cost + .1;
 end

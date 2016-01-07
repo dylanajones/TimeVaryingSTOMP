@@ -128,12 +128,16 @@ for i = 1:K
     end   
 end
 
-% Finding the minimum and maximum costs for each watypoint number
 max_costs = max(cost_mat.');
-min_costs = min(cost_mat.');
+min_costs = min(c
 
-% Finding the probability contribution of each waypoint
-
+% for i = 1:N
+%     cost(i) = cost_function(path(i,1:2),map);
+% end
+% 
+% % These are currently wrong, NEED TO UPDATE
+% max_cost = max(cost);
+% min_cost = min(cost);
 % 
 % prob = zeros(N,1);
 % 
