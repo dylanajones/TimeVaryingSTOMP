@@ -7,6 +7,8 @@ clc
 
 v_max = 2;
 num_paths = 50;
+num_its = 100;
+decay_fact = 1.0;
 
 %% Creating the Map
 m_size = 1000;
@@ -47,27 +49,32 @@ B = finitediff2(N);
 Rinv = inv(B);
 RinvTran = inv(B.');
 
+T = eye(N);
+Tinv = T;
+
+% Handling the two end cases
+T(1,1) = 1 / (path(1,3) ^ 2);
+Tinv(1,1) = path(1,3) ^ 2;
+T(N,N) = 1 / (path(N-1,3) ^ 2);
+Tinv(N,N) = path(N-1,3) ^ 2;
+
+% Taking the square of the average time 
+for i = 2:N-1
+    T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+    Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+end
+
 %% Iteration Step
 
 tot_cost = zeros(100,1);
+decay_it = decay_fact;
 
-for m = 1:100
+for m = 1:num_its
+    
     display(m)
+    display(decay_it)
     % Creating the time multiplier matrix
-    T = eye(N);
-    Tinv = T;
 
-    % Handling the two end cases
-    T(1,1) = 1 / (path(1,3) ^ 2);
-    Tinv(1,1) = path(1,3) ^ 2;
-    T(N,N) = 1 / (path(N-1,3) ^ 2);
-    Tinv(N,N) = path(N-1,3) ^ 2;
-
-    % Taking the square of the average time 
-    for i = 2:N-1
-        T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
-        Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
-    end
     
     % Creating R matrix
     R = B.'* T * T * B;
@@ -87,18 +94,28 @@ for m = 1:100
         M(:,i) = cov_mat(:,i) / scale_M(i);
     end
     
+    % Creating the scaling matrix for time update
+    scale_T = max(Tinv) * N;
+    M_t = zeros(N,N);
+    
+    for i = 1:N
+        M_t(:,i) = Tinv(:,i) / scale_T(i);
+    end
+    
+    % Array for creating the pertubations of the path
     cov_array(:,:,1) = cov_mat;
     cov_array(:,:,2) = cov_mat;
-
+    cov_array(:,:,3) = Tinv;
+    
     K = num_paths;
 
     % Variable to hold all noisy paths generated
-    noisy_paths = zeros(K,2,N);
-    eps_mat = zeros(K,2,N);
+    noisy_paths = zeros(K,3,N);
+    eps_mat = zeros(K,3,N);
 
     % Generating the pertubations to the initial path
-    for i = 1:K
-        temp_eps = mvnrnd(zeros(2,N),cov_array);
+    for i = 1:K-1
+        temp_eps = mvnrnd(zeros(3,N),cov_array) * decay_it;
         temp_eps = temp_eps.';
 
         temp_eps(1,1) = 0;
@@ -106,19 +123,34 @@ for m = 1:100
 
         temp_eps(N,1) = 0;
         temp_eps(N,2) = 0;
+        temp_eps(N,3) = 0;
 
-        temp_noisy_path = path(:,1:2) + temp_eps;
+        temp_noisy_path = path(:,:) + temp_eps;
 
-        eps_mat(i,1:2,:) = temp_eps.';
-        noisy_paths(i,1:2,:) = temp_noisy_path.';
+        eps_mat(i,:,:) = temp_eps.';
+        noisy_paths(i,:,:) = temp_noisy_path.';
         % Note: accessing noisy_paths: (path_number, dimension, waypoint_number)
-    end
+        
+        % Looping to ensure that no paths have a negative travel time
+        for j = 1:N-1
+            if (noisy_paths(i,3,j) <= 0)
+                x_dist = noisy_paths(i,1,j) - noisy_paths(i,1,j+1);
+                y_dist = noisy_paths(i,2,j) - noisy_paths(i,2,j+1);
+                noisy_paths(i,3,j) = sqrt(x_dist^2 + y_dist^2) / v_max;
+            end
+        end
+     end
+    
+    temp_eps = zeros(3,N).';
+    temp_noisy_path = path(:,:) + temp_eps;
+    eps_mat(K,:,:) = temp_eps.';
+    noisy_paths(K,:,:) = temp_noisy_path.';
 
     % Code to plot all the perturbed paths
     figure(1)
     clf
     hold on
-    plot(path(:,1),path(:,2),'r')
+    plot(path(:,1),path(:,2),'r-x')
 
     x = zeros(N,1);
     y = x;
@@ -128,7 +160,7 @@ for m = 1:100
             x(j) = noisy_paths(i,1,j);
             y(j) = noisy_paths(i,2,j);
         end
-        plot(x,y,'g')
+        plot(x,y,'g-x')
     end
     hold off
 
@@ -137,12 +169,18 @@ for m = 1:100
     % Loop to calculate all the costs for the noisy paths
     for i = 1:K
         for j = 2:N-1
-            waypoint = zeros(1,2);
+            waypoint1 = zeros(1,3);
+            waypoint2 = zeros(1,3);
 
-            waypoint(1) = noisy_paths(i,1,j);
-            waypoint(2) = noisy_paths(i,2,j);
+            waypoint1(1) = noisy_paths(i,1,j);
+            waypoint1(2) = noisy_paths(i,2,j);
+            waypoint1(3) = noisy_paths(i,3,j);
+            
+            waypoint2(1) = noisy_paths(i,1,j);
+            waypoint2(2) = noisy_paths(i,2,j);
+            waypoint2(3) = noisy_paths(i,3,j);
 
-            cost_mat(j,i) = cost_function(waypoint,map);
+            cost_mat(j,i) = cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
         end   
     end
 
@@ -162,7 +200,6 @@ for m = 1:100
     for i = 2:N-1
         e_sum = 0;
 
-        %TODO: NEED TO ADD CODE TO ACCOUNT FOR MIN AND MAX COST BEING EQUAL
         if max_costs(i) ~= min_costs(i)
             for j = 1:K
                 e_mat(i,j) = exp(-h*((cost_mat(i,j) - min_costs(i))/(max_costs(i) - min_costs(i))));
@@ -175,7 +212,7 @@ for m = 1:100
         end
     end
 
-    update_vector = zeros(N,2);
+    update_vector = zeros(N,3);
 
     % Loop through and add all contributions into update vector
     for i = 2:N-1
@@ -187,17 +224,18 @@ for m = 1:100
     % Scaling the update vector and ensuring the endpoints do not move
     update_vector(:,1) = M * update_vector(:,1);
     update_vector(:,2) = M * update_vector(:,2);
-    update_vector(1,:) = [0,0];
-    update_vector(N,:) = [0,0];
+    update_vector(:,3) = M_t * update_vector(:,3);
+    update_vector(1,:) = [0,0,update_vector(1,3)];
+    update_vector(N,:) = [0,0,0];
     
-    new_path = path(:,1:2) + update_vector;
+    new_path = path(:,:) + update_vector;
 
 
     figure(2)
     hold on
     [X,Y] = meshgrid(0:.1:10);
-    %Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
-    Z = sin(X) + sin(Y) + 2;
+    Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+    %Z = sin(2*X) + sin(2*Y) + 3;
     pcolor(X,Y,Z);
     shading flat;
     
@@ -205,26 +243,33 @@ for m = 1:100
     hold off
     
     pause(.01)
+    
+    % Handling the two end cases
+    T(1,1) = 1 / (path(1,3) ^ 2);
+    Tinv(1,1) = path(1,3) ^ 2;
+    T(N,N) = 1 / (path(N-1,3) ^ 2);
+    Tinv(N,N) = path(N-1,3) ^ 2;
 
-    path(:,1:2) = new_path;
+    % Taking the square of the average time 
+    for i = 2:N-1
+        T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+        Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+    end
     
-%     % Recalculate Travel Times
-%     for i = 1:N-1
-%         path(i,3) = my_distance(path(i,1:2),path(i+1,1:2),v_max);
-%     end
+    path(:,:) = new_path;
     
-    weight = 0.01;
+    weight = 0.001;
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
-    
+   
     for i = 1:N
         tot_cost(m) = tot_cost(m) + cost_function(path(i,1:2),map);
     end
     
-    display(tot_cost)
+    decay_it = decay_it * decay_fact;
 end
 
 figure(3)
-plot(1:100,tot_cost)
+plot(1:num_its,tot_cost)
 
 
 
