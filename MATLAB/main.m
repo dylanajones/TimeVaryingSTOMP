@@ -6,7 +6,7 @@ close all
 clc
 
 v_max = 2;
-num_paths = 10;
+num_paths = 50;
 
 %% Creating the Map
 m_size = 1000;
@@ -49,7 +49,9 @@ RinvTran = inv(B.');
 
 %% Iteration Step
 
-for m = 1:50
+tot_cost = zeros(100,1);
+
+for m = 1:100
     display(m)
     % Creating the time multiplier matrix
     T = eye(N);
@@ -66,14 +68,25 @@ for m = 1:50
         T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
         Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
     end
-
+    
+    % Creating R matrix
+    R = B.'* T * T * B;
+    
     % Creating the covariance matrix from which the pertubations are sampled
     cov_mat = Rinv * Tinv * Tinv * RinvTran;
 
     % This is needed due to numerical errors to ensure the mvnrnd function can
     % be used
     cov_mat = (cov_mat + cov_mat.') / 2;
-
+    
+    % Creating the scaling matrix for update
+    scale_M = max(cov_mat) * N;
+    M = zeros(N,N);
+    
+    for i = 1:N
+        M(:,i) = cov_mat(:,i) / scale_M(i);
+    end
+    
     cov_array(:,:,1) = cov_mat;
     cov_array(:,:,2) = cov_mat;
 
@@ -123,7 +136,7 @@ for m = 1:50
 
     % Loop to calculate all the costs for the noisy paths
     for i = 1:K
-        for j = 1:N
+        for j = 2:N-1
             waypoint = zeros(1,2);
 
             waypoint(1) = noisy_paths(i,1,j);
@@ -146,7 +159,7 @@ for m = 1:50
 
     % For this loop we go through the waypoints on the outside and the paths on
     % the inside as we calculate the probability
-    for i = 1:N
+    for i = 2:N-1
         e_sum = 0;
 
         %TODO: NEED TO ADD CODE TO ACCOUNT FOR MIN AND MAX COST BEING EQUAL
@@ -165,29 +178,53 @@ for m = 1:50
     update_vector = zeros(N,2);
 
     % Loop through and add all contributions into update vector
-    for i = 1:N
+    for i = 2:N-1
         for j = 1:K
             update_vector(i,:) = update_vector(i,:) + eps_mat(j,:,i) * prob_mat(i,j);
         end
     end
-
-    % TODO: NEED TO SCALE THE UPDTAE VECTOR HERE
-
-
+    
+    % Scaling the update vector and ensuring the endpoints do not move
+    update_vector(:,1) = M * update_vector(:,1);
+    update_vector(:,2) = M * update_vector(:,2);
+    update_vector(1,:) = [0,0];
+    update_vector(N,:) = [0,0];
+    
     new_path = path(:,1:2) + update_vector;
 
 
     figure(2)
-    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'b')
-    rectangle('Position',[4,4,2,2])
-
-    w = waitforbuttonpress;
+    hold on
+    [X,Y] = meshgrid(0:.1:10);
+    %Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+    Z = sin(X) + sin(Y) + 2;
+    pcolor(X,Y,Z);
+    shading flat;
+    
+    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+    hold off
+    
+    pause(.01)
 
     path(:,1:2) = new_path;
-
+    
+%     % Recalculate Travel Times
+%     for i = 1:N-1
+%         path(i,3) = my_distance(path(i,1:2),path(i+1,1:2),v_max);
+%     end
+    
+    weight = 0.01;
+    tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
+    
+    for i = 1:N
+        tot_cost(m) = tot_cost(m) + cost_function(path(i,1:2),map);
+    end
+    
+    display(tot_cost)
 end
 
-
+figure(3)
+plot(1:100,tot_cost)
 
 
 

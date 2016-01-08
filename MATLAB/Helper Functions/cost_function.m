@@ -12,11 +12,12 @@ function [cost] = cost_function(waypoint, map)
     %cost = map(waypoint(1),waypoint(2));
     
     %Block in middle cost function
-    cost = 0;
-    if ((x > 4) && (x < 6) && (y > 4) && (y < 6))
-        cost = 1 / sqrt((x-5)^2+(y-5)^2);
+    %cost = 0;
+    if ((x > 0) && (x < 10) && (y > 0) && (y < 10))
+        %cost = sin(sqrt((x-5)^2+(y-5)^2)) / sqrt((x-5)^2+(y-5)^2);
+        cost = sin(x) + sin(y) + 2;
+    else
+        cost = 10;
     end
-    
-    % Adding .1 to every waypoint to ensure no divid by zero errors
-    cost = cost + .1;
+
 end
