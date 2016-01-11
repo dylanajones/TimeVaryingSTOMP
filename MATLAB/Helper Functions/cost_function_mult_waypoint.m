@@ -2,7 +2,7 @@
 
 function [cost] = cost_function_mult_waypoint(waypoint1, waypoint2, v_max)
     
-    L = 10;
+    L = 100;
 
     x_1 = waypoint1(1);
     x_2 = waypoint2(1);

@@ -18,7 +18,7 @@ map = ones(m_size,m_size);
 start_point = [0, 0, 0];
 end_point = [10, 10, 0];
 
-num_waypoints = 100;
+num_waypoints = 20;
 N = num_waypoints;
 
 path = zeros(num_waypoints,3);
@@ -126,6 +126,9 @@ for m = 1:num_its
         temp_eps(N,3) = 0;
 
         temp_noisy_path = path(:,:) + temp_eps;
+        
+        %figure(5)
+        %waitforbuttonpress
 
         eps_mat(i,:,:) = temp_eps.';
         noisy_paths(i,:,:) = temp_noisy_path.';
@@ -136,9 +139,13 @@ for m = 1:num_its
             if (noisy_paths(i,3,j) <= 0)
                 x_dist = noisy_paths(i,1,j) - noisy_paths(i,1,j+1);
                 y_dist = noisy_paths(i,2,j) - noisy_paths(i,2,j+1);
-                noisy_paths(i,3,j) = sqrt(x_dist^2 + y_dist^2) / v_max;
+                noisy_paths(i,3,j) = 2 * sqrt(x_dist^2 + y_dist^2) / v_max;               
             end
         end
+        
+        %noisy_paths(i,3,:)
+        
+        %waitforbuttonpress
      end
     
     temp_eps = zeros(3,N).';
@@ -242,7 +249,17 @@ for m = 1:num_its
     plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
     hold off
     
-    pause(.01)
+    figure(3)
+    hold on
+    v_path = cal_velocities(path);
+    v_new_path = cal_velocities(new_path);
+    plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
+    hold off
+    
+    avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
+    avg_v(m)
+    
+    pause(.1)
     
     % Handling the two end cases
     T(1,1) = 1 / (path(1,3) ^ 2);
@@ -266,9 +283,12 @@ for m = 1:num_its
     end
     
     decay_it = decay_it * decay_fact;
+    
+    
+    
 end
 
-figure(3)
+figure(4)
 plot(1:num_its,tot_cost)
 
 
