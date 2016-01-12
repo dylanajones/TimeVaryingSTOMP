@@ -7,14 +7,14 @@ clc
 
 v_max = 2;
 num_paths = 10;
-num_its = 500;
+num_its = 50;
 decay_fact = .995;
 
 %% Creating the initial path
 start_point = [1, 1, 0];
 end_point = [9, 9, 0];
 
-num_waypoints = 100;
+num_waypoints = 50;
 N = num_waypoints;
 
 path = zeros(num_waypoints,3);
@@ -65,6 +65,7 @@ end
 tot_cost = zeros(num_its,1);
 smooth_cost = zeros(num_its,1);
 waypoint_cost = zeros(num_its,1);
+cost_by_waypoint = zeros(N,num_its);
 decay_it = decay_fact;
 
 for m = 1:num_its
@@ -279,7 +280,6 @@ for m = 1:num_its
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
     smooth_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
 
-    %ERROR HERE - NEED TO ACCCOUNT FOR JUST PATH IN COST FUNCTION
     for j = 1:N-1
         waypoint1 = zeros(1,3);
         waypoint2 = zeros(1,3);
@@ -294,6 +294,8 @@ for m = 1:num_its
 
         tot_cost(m) = tot_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
         waypoint_cost(m) = waypoint_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+        
+        cost_by_waypoint(j,m) = cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
 
     end   
     
@@ -306,16 +308,27 @@ end
 
 figure(4)
 plot(1:num_its,tot_cost)
+title('Total Cost')
 
 figure(5)
 plot(1:num_its,smooth_cost)
+title('Smoothing Cost')
 
 figure(6)
 plot(1:num_its,waypoint_cost)
+title('Waypoint Cost')
 
-
-
-
+figure(7)
+hold on
+for i = 1:num_its
+    if i < num_its / 2
+        plot(1:N,cost_by_waypoint(:,i),'r')
+    else
+        plot(1:N,cost_by_waypoint(:,i),'b')
+    end
+end
+title('Individual Waypoint Costs')
+hold off
 
 
 
