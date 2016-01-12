@@ -6,13 +6,17 @@ close all
 clc
 
 v_max = 2;
-num_paths = 10;
-num_its = 50;
+num_paths = 25;
+num_its = 100;
 decay_fact = .995;
+
+%% Creating the Current Map
+
+current_gen
 
 %% Creating the initial path
 start_point = [1, 1, 0];
-end_point = [9, 9, 0];
+end_point = [9, 5, 0];
 
 num_waypoints = 50;
 N = num_waypoints;
@@ -66,6 +70,8 @@ tot_cost = zeros(num_its,1);
 smooth_cost = zeros(num_its,1);
 waypoint_cost = zeros(num_its,1);
 cost_by_waypoint = zeros(N,num_its);
+avg_v = zeros(num_its,1);
+
 decay_it = decay_fact;
 
 for m = 1:num_its
@@ -189,7 +195,7 @@ for m = 1:num_its
             waypoint2(2) = noisy_paths(i,2,j+1);
             waypoint2(3) = noisy_paths(i,3,j+1);
 
-            cost_mat(j,i) = cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+            cost_mat(j,i) = cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
         end   
     end
 
@@ -242,11 +248,8 @@ for m = 1:num_its
 
     figure(2)
     hold on
-    [X,Y] = meshgrid(0:.1:10);
-    Z = 100 .* abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
-    %Z = sin(2*X) + sin(2*Y) + 3;
-    pcolor(X,Y,Z);
-    shading flat;
+    
+    quiver(q_x,q_y,u,v)
     
     plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
     hold off
@@ -292,10 +295,10 @@ for m = 1:num_its
         waypoint2(2) = path(j+1,2);
         waypoint2(3) = path(j+1,3);
 
-        tot_cost(m) = tot_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
-        waypoint_cost(m) = waypoint_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+        tot_cost(m) = tot_cost(m) + cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
+        waypoint_cost(m) = waypoint_cost(m) + cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
         
-        cost_by_waypoint(j,m) = cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+        cost_by_waypoint(j,m) = cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
 
     end   
     

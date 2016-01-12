@@ -3,15 +3,17 @@
 %% Simple current field
 %   -This current field goes down in the middle and up on the sides
 
-[x,y] = meshgrid(0:.5:10,0:.5:10);
+[q_x,q_y] = meshgrid(0:.5:10,0:.5:10);
 
-u = zeros(21,21);
-v = ones(21,21);
+v = zeros(21,21);
+u = ones(21,21) * -1;
 
 for i = 8:12
     for j = 1:21
-        v(j,i) = -1;
+        u(i,j) = 1;
     end
 end
 
-quiver(x,y,u,v)
+figure(90)
+title('Current Plot')
+quiver(q_x,q_y,u,v)
