@@ -8,11 +8,11 @@ clc
 v_max = 2;
 num_paths = 50;
 num_its = 100;
-decay_fact = 1.0;
+decay_fact = .97;
 
 %% Creating the initial path
-start_point = [0, 0, 0];
-end_point = [10, 10, 0];
+start_point = [1, 1, 0];
+end_point = [9, 9, 0];
 
 num_waypoints = 50;
 N = num_waypoints;
@@ -93,7 +93,7 @@ for m = 1:num_its
     end
     
     % Creating the scaling matrix for time update
-    scale_T = max(Tinv) * N;
+    scale_T = max(Tinv) * .1 * N;
     M_t = zeros(N,N);
     
     for i = 1:N
@@ -242,7 +242,7 @@ for m = 1:num_its
     figure(2)
     hold on
     [X,Y] = meshgrid(0:.1:10);
-    Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+    Z = 10 .* abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
     %Z = sin(2*X) + sin(2*Y) + 3;
     pcolor(X,Y,Z);
     shading flat;
@@ -312,12 +312,3 @@ plot(1:num_its,smooth_cost)
 
 figure(6)
 plot(1:num_its,waypoint_cost)
-
-
-
-
-
-
-
-
-

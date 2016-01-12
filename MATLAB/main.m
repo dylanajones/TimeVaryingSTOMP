@@ -6,15 +6,15 @@ close all
 clc
 
 v_max = 2;
-num_paths = 50;
-num_its = 100;
-decay_fact = 1.0;
+num_paths = 10;
+num_its = 500;
+decay_fact = .995;
 
 %% Creating the initial path
-start_point = [0, 0, 0];
-end_point = [10, 10, 0];
+start_point = [1, 1, 0];
+end_point = [9, 9, 0];
 
-num_waypoints = 20;
+num_waypoints = 100;
 N = num_waypoints;
 
 path = zeros(num_waypoints,3);
@@ -62,7 +62,9 @@ end
 
 %% Iteration Step
 
-tot_cost = zeros(100,1);
+tot_cost = zeros(num_its,1);
+smooth_cost = zeros(num_its,1);
+waypoint_cost = zeros(num_its,1);
 decay_it = decay_fact;
 
 for m = 1:num_its
@@ -91,7 +93,7 @@ for m = 1:num_its
     end
     
     % Creating the scaling matrix for time update
-    scale_T = max(Tinv) * N;
+    scale_T = max(Tinv) * .1 * N;
     M_t = zeros(N,N);
     
     for i = 1:N
@@ -111,7 +113,10 @@ for m = 1:num_its
 
     % Generating the pertubations to the initial path
     for i = 1:K-1
-        temp_eps = mvnrnd(zeros(3,N),cov_array) * decay_it;
+        means = zeros(3,N);
+        %means(3,:) = ones(1,N) * .1;
+        temp_eps = mvnrnd(means,cov_array) * decay_it;
+        temp_eps(3,:) = temp_eps(3,:) * .1;
         temp_eps = temp_eps.';
 
         temp_eps(1,1) = 0;
@@ -123,8 +128,8 @@ for m = 1:num_its
 
         temp_noisy_path = path(:,:) + temp_eps;
         
-        %figure(5)
-        %waitforbuttonpress
+%         figure(99)
+%         waitforbuttonpress
 
         eps_mat(i,:,:) = temp_eps.';
         noisy_paths(i,:,:) = temp_noisy_path.';
@@ -171,7 +176,7 @@ for m = 1:num_its
 
     % Loop to calculate all the costs for the noisy paths
     for i = 1:K
-        for j = 2:N-1
+        for j = 1:N-1
             waypoint1 = zeros(1,3);
             waypoint2 = zeros(1,3);
 
@@ -179,9 +184,9 @@ for m = 1:num_its
             waypoint1(2) = noisy_paths(i,2,j);
             waypoint1(3) = noisy_paths(i,3,j);
             
-            waypoint2(1) = noisy_paths(i,1,j);
-            waypoint2(2) = noisy_paths(i,2,j);
-            waypoint2(3) = noisy_paths(i,3,j);
+            waypoint2(1) = noisy_paths(i,1,j+1);
+            waypoint2(2) = noisy_paths(i,2,j+1);
+            waypoint2(3) = noisy_paths(i,3,j+1);
 
             cost_mat(j,i) = cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
         end   
@@ -200,7 +205,7 @@ for m = 1:num_its
 
     % For this loop we go through the waypoints on the outside and the paths on
     % the inside as we calculate the probability
-    for i = 2:N-1
+    for i = 1:N-1
         e_sum = 0;
 
         if max_costs(i) ~= min_costs(i)
@@ -218,7 +223,7 @@ for m = 1:num_its
     update_vector = zeros(N,3);
 
     % Loop through and add all contributions into update vector
-    for i = 2:N-1
+    for i = 1:N-1
         for j = 1:K
             update_vector(i,:) = update_vector(i,:) + eps_mat(j,:,i) * prob_mat(i,j);
         end
@@ -237,7 +242,7 @@ for m = 1:num_its
     figure(2)
     hold on
     [X,Y] = meshgrid(0:.1:10);
-    Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+    Z = 100 .* abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
     %Z = sin(2*X) + sin(2*Y) + 3;
     pcolor(X,Y,Z);
     shading flat;
@@ -253,7 +258,6 @@ for m = 1:num_its
     hold off
     
     avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
-    avg_v(m)
     
     pause(.1)
     
@@ -273,10 +277,26 @@ for m = 1:num_its
     
     weight = 0.001;
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
-   
-    for i = 1:N
-        tot_cost(m) = tot_cost(m) + cost_function(path(i,1:2),map);
-    end
+    smooth_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
+
+    %ERROR HERE - NEED TO ACCCOUNT FOR JUST PATH IN COST FUNCTION
+    for j = 1:N-1
+        waypoint1 = zeros(1,3);
+        waypoint2 = zeros(1,3);
+
+        waypoint1(1) = path(j,1);
+        waypoint1(2) = path(j,2);
+        waypoint1(3) = path(j,3);
+
+        waypoint2(1) = path(j+1,1);
+        waypoint2(2) = path(j+1,2);
+        waypoint2(3) = path(j+1,3);
+
+        tot_cost(m) = tot_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+        waypoint_cost(m) = waypoint_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+
+    end   
+    
     
     decay_it = decay_it * decay_fact;
     
@@ -287,7 +307,11 @@ end
 figure(4)
 plot(1:num_its,tot_cost)
 
+figure(5)
+plot(1:num_its,smooth_cost)
 
+figure(6)
+plot(1:num_its,waypoint_cost)
 
 
 

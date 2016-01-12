@@ -209,10 +209,10 @@ for m = 1:num_its
 
     path(:,1:2) = new_path;
     
-%     % Recalculate Travel Times
-%     for i = 1:N-1
-%         path(i,3) = my_distance(path(i,1:2),path(i+1,1:2),v_max);
-%     end
+    % Recalculate Travel Times
+    for i = 1:N-1
+        path(i,3) = my_distance(path(i,1:2),path(i+1,1:2),v_max);
+    end
     
     weight = 0.0001;
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
@@ -227,7 +227,7 @@ end
 figure(2)
 hold on
 [X,Y] = meshgrid(0:.1:10);
-Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+Z = abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
 %Z = sin(X) + sin(Y) + 2;
 pcolor(X,Y,Z);
 shading flat;

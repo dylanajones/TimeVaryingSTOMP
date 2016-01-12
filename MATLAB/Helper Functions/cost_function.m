@@ -10,7 +10,7 @@ function [cost] = cost_function(waypoint, map)
     
     %cost = 0;
     if ((x > 0) && (x < 10) && (y > 0) && (y < 10))
-        cost = sin(sqrt((x-5)^2+(y-5)^2)) / sqrt((x-5)^2+(y-5)^2);
+        cost = abs(sin(sqrt((x-5)^2+(y-5)^2)) / sqrt((x-5)^2+(y-5)^2));
         %cost = sin(2*x) + sin(2*y) + 3;
     else
         cost = 10;
