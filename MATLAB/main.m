@@ -8,7 +8,7 @@ clc
 v_max = 2;
 num_paths = 25;
 num_its = 100;
-decay_fact = .995;
+decay_fact = .99;
 
 %% Creating the Current Map
 
@@ -16,7 +16,7 @@ current_gen
 
 %% Creating the initial path
 start_point = [1, 1, 0];
-end_point = [9, 5, 0];
+end_point = [9, 9, 0];
 
 num_waypoints = 50;
 N = num_waypoints;
@@ -181,21 +181,46 @@ for m = 1:num_its
 
     cost_mat = zeros(N,K);
 
-    % Loop to calculate all the costs for the noisy paths
+    % Loop to calculate all the costs for the noisy paths - first cost
+    % function
+%     for i = 1:K
+%         for j = 1:N-1
+%             waypoint1 = zeros(1,3);
+%             waypoint2 = zeros(1,3);
+% 
+%             waypoint1(1) = noisy_paths(i,1,j);
+%             waypoint1(2) = noisy_paths(i,2,j);
+%             waypoint1(3) = noisy_paths(i,3,j);
+%             
+%             waypoint2(1) = noisy_paths(i,1,j+1);
+%             waypoint2(2) = noisy_paths(i,2,j+1);
+%             waypoint2(3) = noisy_paths(i,3,j+1);
+% 
+%             cost_mat(j,i) = cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
+%         end   
+%     end
+    
+    % Loop to calculate all the costs for the noisy paths - Second cost
+    % function
     for i = 1:K
-        for j = 1:N-1
+        for j = 2:N-1
             waypoint1 = zeros(1,3);
             waypoint2 = zeros(1,3);
+            waypoint3 = zeros(1,3);
 
-            waypoint1(1) = noisy_paths(i,1,j);
-            waypoint1(2) = noisy_paths(i,2,j);
-            waypoint1(3) = noisy_paths(i,3,j);
+            waypoint1(1) = noisy_paths(i,1,j-1);
+            waypoint1(2) = noisy_paths(i,2,j-1);
+            waypoint1(3) = noisy_paths(i,3,j-1);
             
-            waypoint2(1) = noisy_paths(i,1,j+1);
-            waypoint2(2) = noisy_paths(i,2,j+1);
-            waypoint2(3) = noisy_paths(i,3,j+1);
+            waypoint2(1) = noisy_paths(i,1,j);
+            waypoint2(2) = noisy_paths(i,2,j);
+            waypoint2(3) = noisy_paths(i,3,j);
+            
+            waypoint3(1) = noisy_paths(i,1,j+1);
+            waypoint3(2) = noisy_paths(i,2,j+1);
+            waypoint3(3) = noisy_paths(i,3,j+1);
 
-            cost_mat(j,i) = cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
+            cost_mat(j,i) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         end   
     end
 
@@ -305,7 +330,10 @@ for m = 1:num_its
     
     decay_it = decay_it * decay_fact;
     
+    %display(path)
     
+%     figure(20)
+%     waitforbuttonpress
     
 end
 

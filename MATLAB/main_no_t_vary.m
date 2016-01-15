@@ -7,7 +7,7 @@ clc
 
 v_max = 2;
 num_paths = 50;
-num_its = 500;
+num_its = 100;
 
 %% Creating the Map
 m_size = 1000;
@@ -116,22 +116,22 @@ for m = 1:num_its
     end
 
     % Code to plot all the perturbed paths
-%     figure(1)
-%     clf
-%     hold on
-%     plot(path(:,1),path(:,2),'r')
-% 
-%     x = zeros(N,1);
-%     y = x;
-% 
-%     for i = 1:K
-%         for j = 1:N
-%             x(j) = noisy_paths(i,1,j);
-%             y(j) = noisy_paths(i,2,j);
-%         end
-%         plot(x,y,'g')
-%     end
-%     hold off
+    figure(1)
+    clf
+    hold on
+    plot(path(:,1),path(:,2),'r')
+
+    x = zeros(N,1);
+    y = x;
+
+    for i = 1:K
+        for j = 1:N
+            x(j) = noisy_paths(i,1,j);
+            y(j) = noisy_paths(i,2,j);
+        end
+        plot(x,y,'g')
+    end
+    hold off
 
     cost_mat = zeros(N,K);
 
@@ -194,25 +194,25 @@ for m = 1:num_its
     new_path = path(:,1:2) + update_vector;
 
 
-%     figure(2)
-%     hold on
-%     [X,Y] = meshgrid(0:.1:10);
-%     Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
-%     %Z = sin(X) + sin(Y) + 2;
-%     pcolor(X,Y,Z);
-%     shading flat;
-%     
-%     plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
-%     hold off
+    figure(2)
+    hold on
+    [X,Y] = meshgrid(0:.1:10);
+    Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+    %Z = sin(X) + sin(Y) + 2;
+    pcolor(X,Y,Z);
+    shading flat;
+    
+    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+    hold off
     
     pause(.01)
 
     path(:,1:2) = new_path;
     
     % Recalculate Travel Times
-    for i = 1:N-1
-        path(i,3) = my_distance(path(i,1:2),path(i+1,1:2),v_max);
-    end
+%     for i = 1:N-1
+%         path(i,3) = my_distance(path(i,1:2),path(i+1,1:2),v_max);
+%     end
     
     weight = 0.0001;
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
