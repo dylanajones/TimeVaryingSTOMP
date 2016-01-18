@@ -1,0 +1,28 @@
+% Function to calculate the velocities along a path with currents
+
+function [velocities] = cal_velocities_curr(path, u, v)
+    
+    N = length(path(:,1));
+    velocities = zeros(N-1,1);
+    
+    for i = 1:N-1
+        
+        % Making the points
+        x_1 = w1(1);
+        y_1 = w1(2);
+        t_1 = w1(3);
+
+        x_2 = w2(1);
+        y_2 = w2(2);
+        
+        x_1 = path(i,1);
+        x_2 = path(i+1,1);
+        
+        y_1 = path(i,2);
+        y_2 = path(i+1,2);
+        
+        t = path(i,3);
+        
+        velocities(i) = sqrt((x_1 - x_2)^2 + (y_1 - y_2)^2) / t;
+    end
+end

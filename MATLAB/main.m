@@ -1,5 +1,9 @@
 % Implementation of STOMP Algorithm
 
+% TODO:
+%   -Check on cost with currents / calculating the required velocity in
+%   currents. These could be wrong...
+
 %% Initial Setup
 clear all
 close all
@@ -12,7 +16,7 @@ decay_fact = .99;
 
 %% Creating the Current Map
 
-current_gen
+[u,v,q_x,q_y] = current_gen(2);
 
 %% Creating the initial path
 start_point = [1, 1, 0];
@@ -279,10 +283,12 @@ for m = 1:num_its
     plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
     hold off
     
+    % Need to update this plotting function -> Needs to be required
+    % velocity, not just absolute velocity
     figure(3)
     hold on
-    v_path = cal_velocities(path);
-    v_new_path = cal_velocities(new_path);
+    v_path = cal_velocities_curr(path,u,v,[10,10]);
+    v_new_path = cal_velocities_curr(new_path,u,v,[10,10]);
     plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
     hold off
     
@@ -327,7 +333,7 @@ for m = 1:num_its
 
     end   
     
-    
+    % Updating the decay factor
     decay_it = decay_it * decay_fact;
     
     %display(path)
