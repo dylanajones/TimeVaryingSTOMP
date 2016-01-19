@@ -7,8 +7,8 @@ clc
 
 v_max = 2;
 num_paths = 10;
-num_its = 50;
-decay_fact = .995;
+num_its = 100;
+decay_fact = .99;
 
 %% Creating the initial path
 start_point = [1, 1, 0];

@@ -16,27 +16,34 @@ decay_fact = .99;
 
 %% Creating the Current Map
 
-[u,v,q_x,q_y] = current_gen(2);
+[u,v,q_x,q_y] = current_gen(1);
 
 %% Creating the initial path
+
+% making a start and goal
 start_point = [1, 1, 0];
 end_point = [9, 9, 0];
 
+% Setting the number of waypoints including the start and goal
 num_waypoints = 50;
 N = num_waypoints;
 
+% Initializing the path variable
 path = zeros(num_waypoints,3);
 path(1,:) = start_point;
 path(num_waypoints,:) = end_point;
 
+% Calculating the stright line path step size
 x_step = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
 y_step = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
 
+% Initializing the t value to a reasonable value
 t_init = sqrt(x_step^2 + y_step^2) / v_max;
 
 path(:,3) = t_init;
 path(num_waypoints,3) = 0;
 
+% Intializing all the waypoints in the path
 for i = 2:num_waypoints-1
     path(i,1) = path(i-1,1) + x_step;
     path(i,2) = path(i-1,2) + y_step;
@@ -48,10 +55,10 @@ end
 %B = finitediff(N);
 
 % Use center finite diff creation
-B = finitediff2(N);
+D = finitediff2(N);
 
-Rinv = inv(B);
-RinvTran = inv(B.');
+Dinv = inv(D);
+DinvTran = inv(D.');
 
 T = eye(N);
 Tinv = T;
@@ -62,7 +69,7 @@ Tinv(1,1) = path(1,3) ^ 2;
 T(N,N) = 1 / (path(N-1,3) ^ 2);
 Tinv(N,N) = path(N-1,3) ^ 2;
 
-% Taking the square of the average time 
+% Taking the square of the average time for the T matrix 
 for i = 2:N-1
     T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
     Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
@@ -70,32 +77,35 @@ end
 
 %% Iteration Step
 
+% Creating variables for plotting puposes
 tot_cost = zeros(num_its,1);
 smooth_cost = zeros(num_its,1);
 waypoint_cost = zeros(num_its,1);
 cost_by_waypoint = zeros(N,num_its);
 avg_v = zeros(num_its,1);
 
+% Initializing the decay factor of exploration
 decay_it = decay_fact;
 
+% Path improvement loop - currently just running for a given number of
+% iterations but would eventually be done until convergence
 for m = 1:num_its
     
-    display(m)
-    display(decay_it)
-    % Creating the time multiplier matrix
-
+%     display(m)
+%     display(decay_it)
     
     % Creating R matrix
-    R = B.'* T * T * B;
+    R = D.'* T * T * D;
     
-    % Creating the covariance matrix from which the pertubations are sampled
-    cov_mat = Rinv * Tinv * Tinv * RinvTran;
+    % Creating the covariance matrix from which the pertubations are
+    % sampled - is equivalent to R^-1
+    cov_mat = Dinv * Tinv * Tinv * DinvTran;
 
     % This is needed due to numerical errors to ensure the mvnrnd function can
-    % be used
+    % be used, making slight pertubations due to rounding disappear
     cov_mat = (cov_mat + cov_mat.') / 2;
     
-    % Creating the scaling matrix for update
+    % Creating the scaling matrix for position update
     scale_M = max(cov_mat) * N;
     M = zeros(N,N);
     
@@ -125,11 +135,12 @@ for m = 1:num_its
     % Generating the pertubations to the initial path
     for i = 1:K-1
         means = zeros(3,N);
-        %means(3,:) = ones(1,N) * .1;
+        %means(3,:) = ones(1,N) * .1; %Attempt to offset the time 
         temp_eps = mvnrnd(means,cov_array) * decay_it;
         temp_eps(3,:) = temp_eps(3,:) * .1;
         temp_eps = temp_eps.';
-
+        
+        % Ensuring that start and end goals do not move
         temp_eps(1,1) = 0;
         temp_eps(1,2) = 0;
 
@@ -296,6 +307,8 @@ for m = 1:num_its
     
     pause(.1)
     
+    path(:,:) = new_path;
+    
     % Handling the two end cases
     T(1,1) = 1 / (path(1,3) ^ 2);
     Tinv(1,1) = path(1,3) ^ 2;
@@ -308,7 +321,10 @@ for m = 1:num_its
         Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
     end
     
-    path(:,:) = new_path;
+    
+    
+    % Creating R matrix
+    R = D.'* T * T * D;
     
     weight = 0.001;
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
