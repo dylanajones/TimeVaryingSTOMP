@@ -3,6 +3,7 @@
 % TODO:
 %   -Check on cost with currents / calculating the required velocity in
 %   currents. These could be wrong...
+%   -Still getting NAN problems sometimes. Investigate and figure out why
 
 %% Initial Setup
 clear all
@@ -16,7 +17,7 @@ decay_fact = .99;
 
 %% Creating the Current Map
 
-[u,v,q_x,q_y] = current_gen(1);
+[u,v,q_x,q_y] = current_gen(2);
 
 %% Creating the initial path
 
