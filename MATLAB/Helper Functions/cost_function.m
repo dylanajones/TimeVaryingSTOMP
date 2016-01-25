@@ -1,6 +1,6 @@
 % Code for the cost function given a waypoint
 
-function [cost] = cost_function(waypoint, map)
+function [cost] = cost_function(waypoint)
     x = waypoint(1);
     y = waypoint(2);
 

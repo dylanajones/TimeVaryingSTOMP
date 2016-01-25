@@ -1,4 +1,5 @@
-% Code for generating a finite difference matrix
+% Code for generating a finite difference matrix that is wrong - Used for
+% testing purposes
 
 function [A] = finitediffwrong(n,x)
     

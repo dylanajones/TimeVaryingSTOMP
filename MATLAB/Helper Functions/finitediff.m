@@ -1,7 +1,6 @@
-% Code for generating a finite difference matrix
-
-%TODO: 
-%   
+% Code for generating a finite difference matrix - Uses both forward and
+% backwards differentiation rules
+ 
 function [A] = finitediff(n)
     
     A = zeros(n,n);

@@ -1,6 +1,6 @@
-% Code for generating a finite difference matrix
+% Code for generating a finite difference matrix using forward and
+% backwards differentiation rules
 
-%TODO: 
 
 function [A] = finitediff1(n)
     

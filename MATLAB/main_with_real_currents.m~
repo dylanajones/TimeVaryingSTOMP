@@ -1,0 +1,14 @@
+% STOMP with Real Currents
+%   -Current data is taken from ROMS data set
+
+%% Initial Setup
+clear all
+close all
+clc
+
+v_max = 2;
+num_paths = 20;
+num_its = 100;
+decay_fact = .99;
+
+%% Creating the Current Map

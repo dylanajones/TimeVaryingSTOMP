@@ -48,8 +48,8 @@ function [velocities] = cal_velocities_curr(path, u, v, size)
         u_avg_12 = (u(x_index_1, y_index_1) + u(x_index_2, y_index_2)) / 2;
         v_avg_12 = (v(x_index_1, y_index_1) + v(x_index_2, y_index_2)) / 2;
         
-        u_req_12 = (x_1 - x_2) / t_1 - u_avg_12;
-        v_req_12 = (y_1 - y_2) / t_1 - v_avg_12;
+        u_req_12 = (x_2 - x_1) / t_1 - u_avg_12;
+        v_req_12 = (y_2 - y_1) / t_1 - v_avg_12;
         
         velocities(i) = sqrt(u_req_12^2 + v_req_12^2);
     end

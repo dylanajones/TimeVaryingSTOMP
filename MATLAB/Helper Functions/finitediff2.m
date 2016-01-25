@@ -1,3 +1,6 @@
+% Function to generate a finite difference matrix using the center
+% differentiation rule
+
 function [A] = finitediff2(n)
     
     A = zeros(n,n);

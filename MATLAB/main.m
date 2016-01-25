@@ -1,8 +1,6 @@
 % Implementation of STOMP Algorithm
 
 % TODO:
-%   -Check on cost with currents / calculating the required velocity in
-%   currents. These could be wrong...
 %   -Still getting NAN problems sometimes. Investigate and figure out why
 
 %% Initial Setup
@@ -11,7 +9,7 @@ close all
 clc
 
 v_max = 2;
-num_paths = 25;
+num_paths = 20;
 num_its = 100;
 decay_fact = .99;
 
@@ -22,8 +20,8 @@ decay_fact = .99;
 %% Creating the initial path
 
 % making a start and goal
-start_point = [1, 1, 0];
-end_point = [9, 9, 0];
+start_point = [2, 2, 0];
+end_point = [8, 8, 0];
 
 % Setting the number of waypoints including the start and goal
 num_waypoints = 50;
@@ -235,8 +233,11 @@ for m = 1:num_its
             waypoint3(1) = noisy_paths(i,1,j+1);
             waypoint3(2) = noisy_paths(i,2,j+1);
             waypoint3(3) = noisy_paths(i,3,j+1);
-
-            cost_mat(j,i) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+            
+%             display('first cost function')
+%             cost_mat(j,i) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+%             display('second cost function')
+            cost_mat(j,i) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         end   
     end
 
@@ -331,22 +332,27 @@ for m = 1:num_its
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
     smooth_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
 
-    for j = 1:N-1
+    for j = 2:N-1
         waypoint1 = zeros(1,3);
         waypoint2 = zeros(1,3);
+        waypoint3 = zeros(1,3);
 
-        waypoint1(1) = path(j,1);
-        waypoint1(2) = path(j,2);
-        waypoint1(3) = path(j,3);
+        waypoint1(1) = path(j-1,1);
+        waypoint1(2) = path(j-1,2);
+        waypoint1(3) = path(j-1,3);
 
-        waypoint2(1) = path(j+1,1);
-        waypoint2(2) = path(j+1,2);
-        waypoint2(3) = path(j+1,3);
+        waypoint2(1) = path(j,1);
+        waypoint2(2) = path(j,2);
+        waypoint2(3) = path(j,3);
 
-        tot_cost(m) = tot_cost(m) + cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
-        waypoint_cost(m) = waypoint_cost(m) + cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
+        waypoint3(1) = path(j+1,1);
+        waypoint3(2) = path(j+1,2);
+        waypoint3(3) = path(j+1,3);
+
+        tot_cost(m) = tot_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         
-        cost_by_waypoint(j,m) = cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
+        cost_by_waypoint(j,m) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
 
     end   
     

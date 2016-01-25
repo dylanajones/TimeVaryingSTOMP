@@ -2,7 +2,7 @@
 
 function [u,v,q_x,q_y] = current_gen(flag)
 
-%% Simple current field
+% Simple current field
 %   -This current field goes down in the middle and up on the sides
 
     if flag == 1
@@ -22,8 +22,8 @@ function [u,v,q_x,q_y] = current_gen(flag)
         title('Current Plot')
         quiver(q_x,q_y,u,v)
 
-    %% Circular Current Field
-    %   -This current field is circular and stronger as you go outward
+% Circular Current Field
+%   -This current field is circular and stronger as you go outward
 
     elseif flag == 2
 
@@ -38,14 +38,17 @@ function [u,v,q_x,q_y] = current_gen(flag)
                 v(i,j) = -q_x(i,j)+5;
             end
         end
-
+        
+        %u = u / 5;
+        %v = v / 5;
+        
         figure(90)
         title('Current Plot')
         quiver(q_x,q_y,u,v)
 
 
 
-        %% Double Circle Current Field
+% Double Circle Current Field
     elseif flag == 3
         [q_x,q_y] = meshgrid(0:.5:10,0:.5:10);
 
