@@ -30,13 +30,13 @@ function [cost] = cost_with_currents_expectation_test(w1, w2, w3, u, v, v_max, s
    
     % Translating the waypoint location to our discritized current field
     % Need to add bound checking here
-    x_index_1 = int8(l / size(1) * x_1) + 1;
+    x_index_1 = int8(l / size(2) * x_1) + 1;
     y_index_1 = int8(l / size(1) * y_1) + 1;
     
-    x_index_2 = int8(l / size(1) * x_2) + 1;
+    x_index_2 = int8(l / size(2) * x_2) + 1;
     y_index_2 = int8(l / size(1) * y_2) + 1;
     
-    x_index_3 = int8(l / size(1) * x_3) + 1;
+    x_index_3 = int8(l / size(2) * x_3) + 1;
     y_index_3 = int8(l / size(1) * y_3) + 1;
     
 %     x_per_1 = x_1 / size(1);
