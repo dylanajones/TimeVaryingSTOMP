@@ -45,7 +45,7 @@ function [cost] = cost_with_currents_expectation_test(w1, w2, w3, u, v, v_max, s
     x_index_3 = int8(l / size(2) * x_3) + 1;
     y_index_3 = int8(l / size(1) * y_3) + 1;
     
-    if (isnan(u(y_index_1, x_index_1)) || isnan(u(y_index_2, x_index_2)) || isnan(u(y_index_3, x_index_3)) || isnan(v(y_index_1, x_index_1)) || isnan(v(y_index_2, x_index_2)) || isnan(v(y_index_3, x_index_3)))
+    if (isnan(u(y_index_1, x_index_1)) || isnan(u(y_index_2, x_index_2)) || isnan(u(y_index_3, x_index_3)))
         % Should make this a function of how deep it is into the object
         cost = O^2;
     else
@@ -100,10 +100,6 @@ function [cost] = cost_with_currents_expectation_test(w1, w2, w3, u, v, v_max, s
     
         % Scaling the difference
         diff = cost_with - cost_without;
-        
-        if diff ~= 0
-            diff = diff / (10 ^ floor(log10(abs(diff))));
-        end
         
         % Adding in energy cost
         cost = cost + exp(diff);

@@ -100,7 +100,7 @@ hold on;
 idx = ~isnan(u) & ~isnan(v);
 
 quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
-
+hold off
 
 figure(51)
 contourf(q_x_m,q_y_m,mag,'LineColor','none');
@@ -111,6 +111,7 @@ hold on;
 idx = ~isnan(u) & ~isnan(v);
 
 quiver(q_x_m(idx),q_y_m(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
+hold off
 
 % figure 
 % contourf(q_x(30:50,70:100),q_y(30:50,70:100),mag(30:50,70:100),'LineColor','none');
@@ -125,21 +126,21 @@ quiver(q_x_m(idx),q_y_m(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
 %% Creating the initial path
 
 % making a start and goal - coordinates in latitude and longitude
-start_point = [33.3, 240.3, 0];
-end_point = [33.2, 240.6, 0];
+start_point = [240.3, 33.3, 0];
+end_point = [240.6, 33.25, 0];
 
 % Start and end point in meters
 
-[c , index_lat] = min(abs(lat - start_point(1)));
-[c , index_lon] = min(abs(lon - start_point(2)));
+[c , index_lon] = min(abs(lon - start_point(1)));
+[c , index_lat] = min(abs(lat - start_point(2)));
 start_point_m = [q_x_m(index_lat,index_lon), q_y_m(index_lat,index_lon),0];
 
-[c , index_lat] = min(abs(lat - end_point(1)));
-[c , index_lon] = min(abs(lon - end_point(2)));
+[c , index_lon] = min(abs(lon - end_point(1)));
+[c , index_lat] = min(abs(lat - end_point(2)));
 end_point_m = [q_x_m(index_lat,index_lon), q_y_m(index_lat,index_lon),0];
 
 % Setting the number of waypoints including the start and goal
-num_waypoints = 1000;
+num_waypoints = 40;
 N = num_waypoints;
 
 % Initializing the path variable
@@ -148,8 +149,11 @@ path(1,:) = start_point_m;
 path(num_waypoints,:) = end_point_m;
 
 % Calculating the stright line path step size
-x_step = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
-y_step = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
+% x_step = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
+% y_step = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
+
+x_step = (path(num_waypoints,1)-path(1,1)) / (num_waypoints - 1);
+y_step = (path(num_waypoints,2)-path(1,2)) / (num_waypoints - 1);
 
 % Intializing all the waypoints in the path
 for i = 2:num_waypoints-1
@@ -157,7 +161,7 @@ for i = 2:num_waypoints-1
     path(i,2) = path(i-1,2) + y_step;
 end
 
-% Initializing the t value to a reasonable value - Use function to
+% Initializing the t value to a reasonablisnan(u(y_index_1, x_index_1)) || isnan(u(y_index_2, x_index_2)) || isnan(u(y_index_3, x_index_3))e value - Use function to
 % calculate distance
 t_init = sqrt(x_step^2 + y_step^2) / v_max;
 
@@ -198,6 +202,8 @@ avg_v = zeros(num_its,1);
 
 % Initializing the decay factor of exploration
 decay_it = decay_fact;
+
+mag_step = .0005;
 
 % Path improvement loop - currently just running for a given number of
 % iterations but would eventually be done until convergence
@@ -244,7 +250,7 @@ for m = 1:num_its
     % Generating the pertubations to the initial path
     for i = 1:K-1
         means = zeros(3,N);
-        temp_eps = mvnrnd(means,cov_array) * decay_it;
+        temp_eps = mvnrnd(means,cov_array) * decay_it * mag_step;
         temp_eps(3,:) = temp_eps(3,:) * .1;
         temp_eps = temp_eps.';
         
@@ -281,7 +287,14 @@ for m = 1:num_its
     % Code to plot all the perturbed paths
     figure(1)
     clf
-    hold on
+    
+    contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
+    caxis([0,max(max(mag))]); colormap (jet); 
+    colorbar 
+    hold on;
+
+    quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
+    
     plot(path(:,1),path(:,2),'r-x')
 
     x = zeros(N,1);
@@ -294,6 +307,9 @@ for m = 1:num_its
         end
         plot(x,y,'g-x')
     end
+    
+    plot(path(:,1),path(:,2),'r-x')
+    
     hold off
 
     cost_mat = zeros(N,K);
@@ -420,15 +436,16 @@ for m = 1:num_its
         waypoint3(2) = path(j+1,2);
         waypoint3(3) = path(j+1,3);
 
-        tot_cost(m) = tot_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
-        waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        %tot_cost(m) = tot_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        %waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         
-        cost_by_waypoint(j,m) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        %cost_by_waypoint(j,m) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
 
     end   
     
     % Updating the decay factor
     decay_it = decay_it * decay_fact;
+    pause(.5)
 end
 
 

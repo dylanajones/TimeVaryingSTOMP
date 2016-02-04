@@ -7,17 +7,17 @@ clc
 
 v_max = 2;
 num_paths = 50;
-num_its = 100;
+num_its = 20;
 
 %% Creating the Map
 m_size = 1000;
 map = ones(m_size,m_size);
 
 %% Creating the initial path
-start_point = [0, 0, 0];
-end_point = [10, 10, 0];
+start_point = [1, 1, 0];
+end_point = [40, 40, 0];
 
-num_waypoints = 50;
+num_waypoints = 30;
 N = num_waypoints;
 
 path = zeros(num_waypoints,3);
@@ -51,6 +51,8 @@ RinvTran = inv(B.');
 %% Iteration Step
 
 tot_cost = zeros(num_its,1);
+
+mag = .5;
 
 for m = 1:num_its
     display(m)
@@ -99,7 +101,7 @@ for m = 1:num_its
 
     % Generating the pertubations to the initial path
     for i = 1:K
-        temp_eps = mvnrnd(zeros(2,N),cov_array);
+        temp_eps = mvnrnd(zeros(2,N),cov_array) * mag;
         temp_eps = temp_eps.';
 
         temp_eps(1,1) = 0;
@@ -119,7 +121,7 @@ for m = 1:num_its
     figure(1)
     clf
     hold on
-    plot(path(:,1),path(:,2),'r')
+    plot(path(:,1),path(:,2),'r-x')
 
     x = zeros(N,1);
     y = x;
@@ -143,7 +145,7 @@ for m = 1:num_its
             waypoint(1) = noisy_paths(i,1,j);
             waypoint(2) = noisy_paths(i,2,j);
 
-            cost_mat(j,i) = cost_function(waypoint,map);
+            cost_mat(j,i) = cost_function(waypoint);
         end   
     end
 
@@ -196,9 +198,9 @@ for m = 1:num_its
 
     figure(2)
     hold on
-    [X,Y] = meshgrid(0:.1:10);
-    Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
-    %Z = sin(X) + sin(Y) + 2;
+    [X,Y] = meshgrid(-10:.5:50);
+    %Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+    Z = sin(X) + cos(Y);
     pcolor(X,Y,Z);
     shading flat;
     
@@ -218,7 +220,7 @@ for m = 1:num_its
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
     
     for i = 1:N
-        tot_cost(m) = tot_cost(m) + cost_function(path(i,1:2),map);
+        tot_cost(m) = tot_cost(m) + cost_function(path(i,1:2));
     end
     
     %display(tot_cost)
@@ -237,3 +239,6 @@ hold off
 
 figure(3)
 plot(1:num_its,tot_cost)
+
+figure
+plot(path(:,1),path(:,2),'r-x')
