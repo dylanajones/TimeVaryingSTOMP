@@ -1,4 +1,4 @@
-% STOMP with Real Currents where time can vary
+% STOMP with Real Currents
 %   -Current data is taken from ROMS data set
 
 %% Initial Setup
@@ -395,11 +395,6 @@ for m = 1:num_its
     
     new_path = path(:,:) + update_vector;
     
-    figure(2)
-    hold on
- 
-    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
-    hold off
     
     path(:,:) = new_path;
     
@@ -417,7 +412,11 @@ for m = 1:num_its
     
     % Large amount of plotting code removed here
     
-    
+    figure(2)
+    hold on
+ 
+    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+    hold off
     
     % Creating R matrix
     R = D.'* T * T * D;

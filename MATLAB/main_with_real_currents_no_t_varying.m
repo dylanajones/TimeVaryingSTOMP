@@ -1,4 +1,4 @@
-% STOMP with Real Currents where time can vary
+% STOMP with Real Currents
 %   -Current data is taken from ROMS data set
 
 %% Initial Setup
@@ -237,17 +237,17 @@ for m = 1:num_its
     end
     
     % Creating the scaling matrix for time update
-    scale_T = max(Tinv) * .1 * N;
-    M_t = zeros(N,N);
+%     scale_T = max(Tinv) * .1 * N;
+%     M_t = zeros(N,N);
     
-    for i = 1:N
-        M_t(:,i) = Tinv(:,i) / scale_T(i);
-    end
+%     for i = 1:N
+%         M_t(:,i) = Tinv(:,i) / scale_T(i);
+%     end
     
     % Array for creating the pertubations of the path
     cov_array(:,:,1) = cov_mat;
     cov_array(:,:,2) = cov_mat;
-    cov_array(:,:,3) = Tinv;
+%     cov_array(:,:,3) = Tinv;
     
     K = num_paths;
     
@@ -257,9 +257,9 @@ for m = 1:num_its
 
     % Generating the pertubations to the initial path
     for i = 1:K-1
-        means = zeros(3,N);
+        means = zeros(2,N);
         temp_eps = mvnrnd(means,cov_array) * decay_it * mag_step;
-        temp_eps(3,:) = temp_eps(3,:) * .1;
+%         temp_eps(3,:) = temp_eps(3,:) * .1;
         temp_eps = temp_eps.';
         
         % Ensuring that start and end goals do not move
@@ -277,13 +277,13 @@ for m = 1:num_its
         % Note: accessing noisy_paths: (path_number, dimension, waypoint_number)
         
         % Looping to ensure that no paths have a negative travel time
-        for j = 1:N-1
-            if (noisy_paths(i,3,j) <= 0)
-                x_dist = noisy_paths(i,1,j) - noisy_paths(i,1,j+1);
-                y_dist = noisy_paths(i,2,j) - noisy_paths(i,2,j+1);
-                noisy_paths(i,3,j) = 2 * sqrt(x_dist^2 + y_dist^2) / v_max;               
-            end
-        end
+%         for j = 1:N-1
+%             if (noisy_paths(i,3,j) <= 0)
+%                 x_dist = noisy_paths(i,1,j) - noisy_paths(i,1,j+1);
+%                 y_dist = noisy_paths(i,2,j) - noisy_paths(i,2,j+1);
+%                 noisy_paths(i,3,j) = 2 * sqrt(x_dist^2 + y_dist^2) / v_max;               
+%             end
+%         end
         
     end
     
@@ -389,7 +389,7 @@ for m = 1:num_its
     % Scaling the update vector and ensuring the endpoints do not move
     update_vector(:,1) = M * update_vector(:,1);
     update_vector(:,2) = M * update_vector(:,2);
-    update_vector(:,3) = M_t * update_vector(:,3);
+%     update_vector(:,3) = M_t * update_vector(:,3);
     update_vector(1,:) = [0,0,update_vector(1,3)];
     update_vector(N,:) = [0,0,0];
     
@@ -403,17 +403,17 @@ for m = 1:num_its
     
     path(:,:) = new_path;
     
-    % Handling the two end cases
-    T(1,1) = 1 / (path(1,3) ^ 2);
-    Tinv(1,1) = path(1,3) ^ 2;
-    T(N,N) = 1 / (path(N-1,3) ^ 2);
-    Tinv(N,N) = path(N-1,3) ^ 2;
-
-    % Taking the square of the average time 
-    for i = 2:N-1
-        T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
-        Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
-    end
+%     % Handling the two end cases
+%     T(1,1) = 1 / (path(1,3) ^ 2);
+%     Tinv(1,1) = path(1,3) ^ 2;
+%     T(N,N) = 1 / (path(N-1,3) ^ 2);
+%     Tinv(N,N) = path(N-1,3) ^ 2;
+% 
+%     % Taking the square of the average time 
+%     for i = 2:N-1
+%         T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+%         Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+%     end
     
     % Large amount of plotting code removed here
     
@@ -454,36 +454,3 @@ for m = 1:num_its
     decay_it = decay_it * decay_fact;
     pause(.25)
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
