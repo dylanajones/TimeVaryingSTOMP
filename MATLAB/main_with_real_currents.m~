@@ -1,7 +1,5 @@
-% Implementation of STOMP Algorithm
-
-% TODO:
-%   -Still getting NAN problems sometimes. Investigate and figure out why
+% STOMP with Real Currents where time can vary
+%   -Current data is taken from ROMS data set
 
 %% Initial Setup
 clear all
@@ -9,38 +7,171 @@ close all
 clc
 
 v_max = 2;
-num_paths = 10;
+num_paths = 20;
 num_its = 25;
 decay_fact = .99;
 
 %% Creating the Current Map
 
-[u,v,q_x,q_y] = current_gen(2);
+filename = 'Data files/temp3.nc';
+
+ncid = netcdf.open(filename);
+
+varname = netcdf.inqVar(ncid,2);
+varid = netcdf.inqVarID(ncid,varname);
+
+lat = netcdf.getVar(ncid,varid);
+
+varname = netcdf.inqVar(ncid,3);
+varid = netcdf.inqVarID(ncid,varname);
+
+lon = netcdf.getVar(ncid,varid);
+
+q_x = zeros(length(lat),length(lon));
+q_y = zeros(length(lat),length(lon));
+
+for i = 1:length(lon)
+    q_y(:,i) = lat;
+end
+
+for i = 1:length(lat)
+    q_x(i,:) = lon;
+end
+
+q_x_m = zeros(length(lat),length(lon));
+q_y_m = zeros(length(lat),length(lon));
+
+for i = 1:length(lat)
+    q_y_m(i,:) = 1000 * lldistkm([lat(1),lon(1)],[lat(i),lon(1)]);
+end
+
+for i = 1:length(lon)
+    q_x_m(:,i) = 1000 * lldistkm([lat(1),lon(1)],[lat(1),lon(i)]);
+end
+
+varname = netcdf.inqVar(ncid,6);
+varid = netcdf.inqVarID(ncid,varname);
+
+data = netcdf.getVar(ncid,varid);
+
+u = data(:,:,1);
+u = u.';
+
+varname = netcdf.inqVar(ncid,7);
+varid = netcdf.inqVarID(ncid,varname);
+
+data = netcdf.getVar(ncid,varid);
+
+v = data(:,:,1);
+v = v.';
+
+[n,m] = size(v);
+
+mag = zeros(size(v));
+
+for i = 1:n
+    for j = 1:m
+        flag = false;
+        
+        if u(i,j) == -9999
+            u(i,j) = NaN;
+            flag = true;
+        end
+        
+        if v(i,j) == -9999
+            v(i,j) = NaN;
+            flag = true;
+        end
+        
+        if flag == false
+            mag(i,j) = sqrt(u(i,j)^2 + v(i,j)^2);
+        else
+            mag(i,j) = NaN;
+        end
+    end
+end
+
+figure(50) 
+contourf(q_x,q_y,mag,'LineColor','none');
+caxis([0,max(max(mag))]); colormap (jet); 
+colorbar 
+hold on;
+
+idx = ~isnan(u) & ~isnan(v);
+
+quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
+hold off
+
+figure(52)
+
+contourf(q_x(1:2:end,1:2:end),q_y(1:2:end,1:2:end),mag(1:2:end,1:2:end),'LineColor','none');
+caxis([0,max(max(mag))]); colormap (jet); 
+c = colorbar;
+c.Label.String = 'Current Magnitude (m/s)'
+hold on;
+
+idx = ~isnan(u) & ~isnan(v);
+
+q_x_a = q_x(idx);
+q_y_a = q_y(idx);
+u_a = u(idx);
+v_a = v(idx);
+
+quiver(q_x_a(1:2:end,1:2:end),q_y_a(1:2:end,1:2:end),u_a(1:2:end,1:2:end),v_a(1:2:end,1:2:end),'LineWidth',1,'Color','k');
+hold off
+
+figure(51)
+contourf(q_x_m,q_y_m,mag,'LineColor','none');
+caxis([0,max(max(mag))]); colormap (jet); 
+colorbar 
+hold on;
+
+idx = ~isnan(u) & ~isnan(v);
+
+quiver(q_x_m(idx),q_y_m(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
+hold off
+
+% figure 
+% contourf(q_x(30:50,70:100),q_y(30:50,70:100),mag(30:50,70:100),'LineColor','none');
+% caxis([0,max(max(mag))]); colormap (jet); 
+% colorbar 
+% hold on;
+% 
+% idx = ~isnan(u) & ~isnan(v);
+% 
+% quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
 
 %% Creating the initial path
 
-% making a start and goal
-start_point = [2, 2, 0];
-end_point = [8, 8, 0];
+% making a start and goal - coordinates in latitude and longitude
+start_point = [240.34, 33.34, 0];
+end_point = [240.6, 33.2, 0];
+
+% Start and end point in meters
+
+[c , index_lon] = min(abs(lon - start_point(1)));
+[c , index_lat] = min(abs(lat - start_point(2)));
+start_point_m = [q_x_m(index_lat,index_lon), q_y_m(index_lat,index_lon),0];
+
+[c , index_lon] = min(abs(lon - end_point(1)));
+[c , index_lat] = min(abs(lat - end_point(2)));
+end_point_m = [q_x_m(index_lat,index_lon), q_y_m(index_lat,index_lon),0];
 
 % Setting the number of waypoints including the start and goal
-num_waypoints = 50;
+num_waypoints = 40;
 N = num_waypoints;
 
 % Initializing the path variable
 path = zeros(num_waypoints,3);
-path(1,:) = start_point;
-path(num_waypoints,:) = end_point;
+path(1,:) = start_point_m;
+path(num_waypoints,:) = end_point_m;
 
 % Calculating the stright line path step size
-x_step = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
-y_step = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
+% x_step = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
+% y_step = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
 
-% Initializing the t value to a reasonable value
-t_init = sqrt(x_step^2 + y_step^2) / v_max;
-
-path(:,3) = t_init;
-path(num_waypoints,3) = 0;
+x_step = (path(num_waypoints,1)-path(1,1)) / (num_waypoints - 1);
+y_step = (path(num_waypoints,2)-path(1,2)) / (num_waypoints - 1);
 
 % Intializing all the waypoints in the path
 for i = 2:num_waypoints-1
@@ -48,10 +179,14 @@ for i = 2:num_waypoints-1
     path(i,2) = path(i-1,2) + y_step;
 end
 
-%% Starting Calculations
+% Initializing the t value to a reasonablisnan(u(y_index_1, x_index_1)) || isnan(u(y_index_2, x_index_2)) || isnan(u(y_index_3, x_index_3))e value - Use function to
+% calculate distance
+t_init = sqrt(x_step^2 + y_step^2) / v_max;
 
-% Use balanced finite diff creation
-%B = finitediff(N);
+path(:,3) = t_init;
+path(num_waypoints,3) = 0;
+
+%% Starting Calculations
 
 % Use center finite diff creation
 D = finitediff2(N);
@@ -86,19 +221,19 @@ avg_v = zeros(num_its,1);
 % Initializing the decay factor of exploration
 decay_it = decay_fact;
 
+mag_step = .0007;
 
 figure(2)
 hold on
-    
-quiver(q_x,q_y,u,v)
+contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
+caxis([0,max(max(mag))]); colormap (jet); 
+colorbar 
 
+quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
 hold off
 % Path improvement loop - currently just running for a given number of
 % iterations but would eventually be done until convergence
 for m = 1:num_its
-    
-%     display(m)
-%     display(decay_it)
     
     % Creating R matrix
     R = D.'* T * T * D;
@@ -133,7 +268,7 @@ for m = 1:num_its
     cov_array(:,:,3) = Tinv;
     
     K = num_paths;
-
+    
     % Variable to hold all noisy paths generated
     noisy_paths = zeros(K,3,N);
     eps_mat = zeros(K,3,N);
@@ -141,8 +276,7 @@ for m = 1:num_its
     % Generating the pertubations to the initial path
     for i = 1:K-1
         means = zeros(3,N);
-        %means(3,:) = ones(1,N) * .1; %Attempt to offset the time 
-        temp_eps = mvnrnd(means,cov_array) * decay_it;
+        temp_eps = mvnrnd(means,cov_array) * decay_it * mag_step;
         temp_eps(3,:) = temp_eps(3,:) * .1;
         temp_eps = temp_eps.';
         
@@ -155,9 +289,6 @@ for m = 1:num_its
         temp_eps(N,3) = 0;
 
         temp_noisy_path = path(:,:) + temp_eps;
-        
-%         figure(99)
-%         waitforbuttonpress
 
         eps_mat(i,:,:) = temp_eps.';
         noisy_paths(i,:,:) = temp_noisy_path.';
@@ -172,10 +303,7 @@ for m = 1:num_its
             end
         end
         
-        %noisy_paths(i,3,:)
-        
-        %waitforbuttonpress
-     end
+    end
     
     temp_eps = zeros(3,N).';
     temp_noisy_path = path(:,:) + temp_eps;
@@ -185,10 +313,16 @@ for m = 1:num_its
     % Code to plot all the perturbed paths
     figure(1)
     clf
-    hold on
     
-    quiver(q_x,q_y,u,v)
+    contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
+    caxis([0,max(max(mag))]); colormap (jet); 
+    colorbar 
+    hold on;
+
+    quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
     
+    plot(path(:,1),path(:,2),'r-x')
+
     x = zeros(N,1);
     y = x;
 
@@ -205,25 +339,6 @@ for m = 1:num_its
     hold off
 
     cost_mat = zeros(N,K);
-
-    % Loop to calculate all the costs for the noisy paths - first cost
-    % function
-%     for i = 1:K
-%         for j = 1:N-1
-%             waypoint1 = zeros(1,3);
-%             waypoint2 = zeros(1,3);
-% 
-%             waypoint1(1) = noisy_paths(i,1,j);
-%             waypoint1(2) = noisy_paths(i,2,j);
-%             waypoint1(3) = noisy_paths(i,3,j);
-%             
-%             waypoint2(1) = noisy_paths(i,1,j+1);
-%             waypoint2(2) = noisy_paths(i,2,j+1);
-%             waypoint2(3) = noisy_paths(i,3,j+1);
-% 
-%             cost_mat(j,i) = cost_with_currents(waypoint1,waypoint2,u,v,v_max,[10,10]);
-%         end   
-%     end
     
     % Loop to calculate all the costs for the noisy paths - Second cost
     % function
@@ -245,13 +360,13 @@ for m = 1:num_its
             waypoint3(2) = noisy_paths(i,2,j+1);
             waypoint3(3) = noisy_paths(i,3,j+1);
             
-%             display('first cost function')
-            cost_mat(j,i) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
-%             display('second cost function')
-%             cost_mat(j,i) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+            % Will need to work on the cost function code to ensure that
+            % they play well together - should just need to chnage last
+            % argument
+            cost_mat(j,i) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[max(max(q_y_m)),max(max(q_x_m))]);
         end   
     end
-
+    
     % Finding the minimum and maximum costs for each watypoint number
     max_costs = max(cost_mat.');
     min_costs = min(cost_mat.');
@@ -297,26 +412,12 @@ for m = 1:num_its
     update_vector(N,:) = [0,0,0];
     
     new_path = path(:,:) + update_vector;
-
-
+    
     figure(2)
     hold on
-    
+ 
     plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
     hold off
-    
-    % Need to update this plotting function -> Needs to be required
-    % velocity, not just absolute velocity
-    figure(3)
-    hold on
-    v_path = cal_velocities_curr(path,u,v,[10,10]);
-    v_new_path = cal_velocities_curr(new_path,u,v,[10,10]);
-    plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
-    hold off
-    
-    avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
-    
-    pause(.1)
     
     path(:,:) = new_path;
     
@@ -331,6 +432,8 @@ for m = 1:num_its
         T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
         Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
     end
+    
+    % Large amount of plotting code removed here
     
     
     
@@ -358,46 +461,46 @@ for m = 1:num_its
         waypoint3(2) = path(j+1,2);
         waypoint3(3) = path(j+1,3);
 
-        tot_cost(m) = tot_cost(m) + cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
-        waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        %tot_cost(m) = tot_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        %waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         
-        cost_by_waypoint(j,m) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        %cost_by_waypoint(j,m) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
 
     end   
     
     % Updating the decay factor
     decay_it = decay_it * decay_fact;
-    
-    %display(path)
-    
-    figure(20)
+    figure(99)
     waitforbuttonpress
-    
 end
 
-figure(4)
-plot(1:num_its,tot_cost)
-title('Total Cost')
 
-figure(5)
-plot(1:num_its,smooth_cost)
-title('Smoothing Cost')
 
-figure(6)
-plot(1:num_its,waypoint_cost)
-title('Waypoint Cost')
 
-figure(7)
-hold on
-for i = 1:num_its
-    if i < num_its / 2
-        plot(1:N,cost_by_waypoint(:,i),'r')
-    else
-        plot(1:N,cost_by_waypoint(:,i),'b')
-    end
-end
-title('Individual Waypoint Costs')
-hold off
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

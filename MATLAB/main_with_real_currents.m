@@ -7,8 +7,8 @@ close all
 clc
 
 v_max = 2;
-num_paths = 20;
-num_its = 100;
+num_paths = 10;
+num_its = 25;
 decay_fact = .99;
 
 %% Creating the Current Map
@@ -102,6 +102,24 @@ idx = ~isnan(u) & ~isnan(v);
 quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
 hold off
 
+figure(52)
+
+contourf(q_x(1:2:end,1:2:end),q_y(1:2:end,1:2:end),mag(1:2:end,1:2:end),'LineColor','none');
+caxis([0,max(max(mag))]); colormap (jet); 
+c = colorbar;
+c.Label.String = 'Current Magnitude (m/s)';
+hold on;
+
+idx = ~isnan(u) & ~isnan(v);
+
+q_x_a = q_x(idx);
+q_y_a = q_y(idx);
+u_a = u(idx);
+v_a = v(idx);
+
+quiver(q_x_a(1:2:end,1:2:end),q_y_a(1:2:end,1:2:end),u_a(1:2:end,1:2:end),v_a(1:2:end,1:2:end),'LineWidth',1,'Color','k');
+hold off
+
 figure(51)
 contourf(q_x_m,q_y_m,mag,'LineColor','none');
 caxis([0,max(max(mag))]); colormap (jet); 
@@ -140,7 +158,7 @@ start_point_m = [q_x_m(index_lat,index_lon), q_y_m(index_lat,index_lon),0];
 end_point_m = [q_x_m(index_lat,index_lon), q_y_m(index_lat,index_lon),0];
 
 % Setting the number of waypoints including the start and goal
-num_waypoints = 40;
+num_waypoints = 50;
 N = num_waypoints;
 
 % Initializing the path variable
@@ -205,14 +223,19 @@ decay_it = decay_fact;
 
 mag_step = .0007;
 
+% Plot with meters
 figure(2)
+set(gca,'Color',[0.8 0.8 0.8]);
 hold on
 contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
 caxis([0,max(max(mag))]); colormap (jet); 
-colorbar 
+c = colorbar;
+c.Label.String = 'Current Magnitude (m/s)'; 
 
 quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
 hold off
+
+
 % Path improvement loop - currently just running for a given number of
 % iterations but would eventually be done until convergence
 for m = 1:num_its
@@ -296,12 +319,18 @@ for m = 1:num_its
     figure(1)
     clf
     
+    set(gca,'Color',[0.8 0.8 0.8]);
+    
+    % Plot with meters
     contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
     caxis([0,max(max(mag))]); colormap (jet); 
-    colorbar 
+    c = colorbar;
+    c.Label.String = 'Current Magnitude (m/s)';
+    
     hold on;
 
     quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
+
     
     plot(path(:,1),path(:,2),'r-x')
 
@@ -316,7 +345,7 @@ for m = 1:num_its
         plot(x,y,'g-x')
     end
     
-    plot(path(:,1),path(:,2),'r-x')
+    plot(path(:,1),path(:,2),'w-x')
     
     hold off
 
@@ -398,7 +427,8 @@ for m = 1:num_its
     figure(2)
     hold on
  
-    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+    plot(path(:,1),path(:,2),'r','LineWidth',1)
+    plot(new_path(:,1),new_path(:,2),'w','LineWidth',1)
     hold off
     
     path(:,:) = new_path;
@@ -452,10 +482,16 @@ for m = 1:num_its
     
     % Updating the decay factor
     decay_it = decay_it * decay_fact;
-    pause(.25)
+    figure(99)
+    waitforbuttonpress;
 end
 
+figure(2)
+hold on
 
+plot(path(:,1),path(:,2),'b','LineWidth',1.3)
+
+hold off
 
 
 
