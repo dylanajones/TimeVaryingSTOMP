@@ -370,10 +370,17 @@ for m = 1:num_its
     
     %display(path)
     
-    figure(20)
-    waitforbuttonpress
+%     figure(20)
+%     waitforbuttonpress
     
 end
+
+figure(2)
+hold on
+
+plot(path(:,1),path(:,2),'b','LineWidth',1.2)
+hold off
+
 
 figure(4)
 plot(1:num_its,tot_cost)
