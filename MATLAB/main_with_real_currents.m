@@ -104,7 +104,9 @@ hold off
 
 figure(52)
 
-contourf(q_x(1:2:end,1:2:end),q_y(1:2:end,1:2:end),mag(1:2:end,1:2:end),'LineColor','none');
+factor = 3;
+
+contourf(q_x(1:factor:end,1:factor:end),q_y(1:factor:end,1:factor:end),mag(1:factor:end,1:factor:end),'LineColor','none');
 caxis([0,max(max(mag))]); colormap (jet); 
 c = colorbar;
 c.Label.String = 'Current Magnitude (m/s)';
@@ -117,7 +119,7 @@ q_y_a = q_y(idx);
 u_a = u(idx);
 v_a = v(idx);
 
-quiver(q_x_a(1:2:end,1:2:end),q_y_a(1:2:end,1:2:end),u_a(1:2:end,1:2:end),v_a(1:2:end,1:2:end),'LineWidth',1,'Color','k');
+quiver(q_x_a(1:factor:end,1:factor:end),q_y_a(1:factor:end,1:factor:end),u_a(1:factor:end,1:factor:end),v_a(1:factor:end,1:factor:end),'LineWidth',1,'Color','k');
 hold off
 
 figure(51)

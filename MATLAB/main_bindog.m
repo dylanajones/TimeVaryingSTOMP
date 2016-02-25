@@ -1,20 +1,20 @@
 % Implementation of STOMP Algorithm
 
 %% Initial Setup
-clear all
+clear
 close all
 clc
 
-v_max = 2;
+% Velocity in meters / second
+v_max = 1;
+
+% Parameters
 num_paths = 50;
 num_its = 20;
 
-%% Creating the Map
-m_size = 1000;
-map = ones(m_size,m_size);
-
 %% Creating the initial path
 start_point = [1, 1, 0];
+center_point = [4.5, 4.5, 0];
 end_point = [10, 10, 0];
 
 num_waypoints = 30;
@@ -24,8 +24,11 @@ path = zeros(num_waypoints,3);
 path(1,:) = start_point;
 path(num_waypoints,:) = end_point;
 
-x_step = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
-y_step = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
+x_step_1 = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
+y_step_1 = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
+
+x_step_2 = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
+y_step_2 = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
 
 t_init = sqrt(x_step^2 + y_step^2) / v_max;
 
@@ -39,61 +42,58 @@ end
 
 %% Starting Calculations
 
-% Use balanced finite diff creation
-%B = finitediff(N);
-
 % Use center finite diff creation
 B = finitediff2(N);
 
 Rinv = inv(B);
 RinvTran = inv(B.');
 
+% Creating the time multiplier matrix
+T = eye(N);
+Tinv = T;
+
+% Handling the two end cases
+T(1,1) = 1 / (path(1,3) ^ 2);
+Tinv(1,1) = path(1,3) ^ 2;
+T(N,N) = 1 / (path(N-1,3) ^ 2);
+Tinv(N,N) = path(N-1,3) ^ 2;
+
+% Taking the square of the average time 
+for i = 2:N-1
+    T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+    Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
+end
+
+% Creating R matrix
+R = B.'* T * T * B;
+
+% Creating the covariance matrix from which the pertubations are sampled
+cov_mat = Rinv * Tinv * Tinv * RinvTran;
+
+% This is needed due to numerical errors to ensure the mvnrnd function can
+% be used
+cov_mat = (cov_mat + cov_mat.') / 2;
+
+% Creating the scaling matrix for update
+scale_M = max(cov_mat) * N;
+M = zeros(N,N);
+
+for i = 1:N
+    M(:,i) = cov_mat(:,i) / scale_M(i);
+end
+
+cov_array(:,:,1) = cov_mat;
+cov_array(:,:,2) = cov_mat;
+
 %% Iteration Step
 
 tot_cost = zeros(num_its,1);
+K = num_paths;
 
-mag = .5;
+mag = .25;
 
 for m = 1:num_its
     display(m)
-    % Creating the time multiplier matrix
-    T = eye(N);
-    Tinv = T;
-
-    % Handling the two end cases
-    T(1,1) = 1 / (path(1,3) ^ 2);
-    Tinv(1,1) = path(1,3) ^ 2;
-    T(N,N) = 1 / (path(N-1,3) ^ 2);
-    Tinv(N,N) = path(N-1,3) ^ 2;
-
-    % Taking the square of the average time 
-    for i = 2:N-1
-        T(i,i) = 1 / (((path(i-1,3) + path(i,3)) / 2) ^ 2);
-        Tinv(i,i) = (((path(i-1,3) + path(i,3)) / 2) ^ 2);
-    end
-    
-    % Creating R matrix
-    R = B.'* T * T * B;
-    
-    % Creating the covariance matrix from which the pertubations are sampled
-    cov_mat = Rinv * Tinv * Tinv * RinvTran;
-
-    % This is needed due to numerical errors to ensure the mvnrnd function can
-    % be used
-    cov_mat = (cov_mat + cov_mat.') / 2;
-    
-    % Creating the scaling matrix for update
-    scale_M = max(cov_mat) * N;
-    M = zeros(N,N);
-    
-    for i = 1:N
-        M(:,i) = cov_mat(:,i) / scale_M(i);
-    end
-    
-    cov_array(:,:,1) = cov_mat;
-    cov_array(:,:,2) = cov_mat;
-
-    K = num_paths;
 
     % Variable to hold all noisy paths generated
     noisy_paths = zeros(K,2,N);
@@ -117,7 +117,7 @@ for m = 1:num_its
         % Note: accessing noisy_paths: (path_number, dimension, waypoint_number)
     end
 
-    % Code to plot all the perturbed paths
+%     % Code to plot all the perturbed paths
     figure(1)
     clf
     hold on
@@ -134,18 +134,28 @@ for m = 1:num_its
         plot(x,y,'g')
     end
     hold off
-
+    
+    pause(.5)
+    
     cost_mat = zeros(N,K);
 
     % Loop to calculate all the costs for the noisy paths
     for i = 1:K
         for j = 2:N-1
-            waypoint = zeros(1,2);
+            waypoint_1 = zeros(1,2);
+            waypoint_2 = zeros(1,2);
+            waypoint_3 = zeros(1,2);
 
-            waypoint(1) = noisy_paths(i,1,j);
-            waypoint(2) = noisy_paths(i,2,j);
+            waypoint_1(1) = noisy_paths(i,1,j-1);
+            waypoint_1(2) = noisy_paths(i,2,j-1);
+            
+            waypoint_2(1) = noisy_paths(i,1,j);
+            waypoint_2(2) = noisy_paths(i,2,j);
+            
+            waypoint_3(1) = noisy_paths(i,1,j+1);
+            waypoint_3(2) = noisy_paths(i,2,j+1);
 
-            cost_mat(j,i) = cost_function(waypoint);
+            cost_mat(j,i) = bindog_cost_function(waypoint_1, waypoint_2, waypoint_3);
         end   
     end
 
@@ -165,7 +175,6 @@ for m = 1:num_its
     for i = 2:N-1
         e_sum = 0;
 
-        %TODO: NEED TO ADD CODE TO ACCOUNT FOR MIN AND MAX COST BEING EQUAL
         if max_costs(i) ~= min_costs(i)
             for j = 1:K
                 e_mat(i,j) = exp(-h*((cost_mat(i,j) - min_costs(i))/(max_costs(i) - min_costs(i))));
@@ -196,46 +205,42 @@ for m = 1:num_its
     new_path = path(:,1:2) + update_vector;
 
 
-    figure(2)
-    hold on
-    [X,Y] = meshgrid(-1:.5:15);
-    %Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
-    Z = sin(X) + cos(Y);
-    pcolor(X,Y,Z);
-    shading flat;
-    
-    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
-    hold off
-    
-    pause(.01)
+%     figure(2)
+%     hold on
+%     [X,Y] = meshgrid(-1:.5:15);
+%     %Z = sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2);
+%     Z = sin(X) + cos(Y);
+%     pcolor(X,Y,Z);
+%     shading flat;
+%     
+%     plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+%     hold off
+%     
+%     pause(.01)
 
     path(:,1:2) = new_path;
-    
-    % Recalculate Travel Times
-%     for i = 1:N-1
-%         path(i,3) = my_distance(path(i,1:2),path(i+1,1:2),v_max);
-%     end
     
     weight = 0.0001;
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
     
-    for i = 1:N
-        tot_cost(m) = tot_cost(m) + cost_function(path(i,1:2));
+    for i = 2:N-1    
+        
+        tot_cost(m) = tot_cost(m) + bindog_cost_function(path(i-1,1:2),path(i,1:2),path(i+1,1:2));
     end
     
     %display(tot_cost)
 end
 
-figure
-hold on
-[X,Y] = meshgrid(0:.1:15);
-%Z = abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
-Z = sin(X) + sin(Y);
-pcolor(X,Y,Z);
-shading flat;
-
-plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
-hold off
+% figure
+% hold on
+% [X,Y] = meshgrid(0:.1:15);
+% %Z = abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
+% Z = sin(X) + sin(Y);
+% pcolor(X,Y,Z);
+% shading flat;
+% 
+% plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+% hold off
 
 figure
 plot(1:num_its,tot_cost)
