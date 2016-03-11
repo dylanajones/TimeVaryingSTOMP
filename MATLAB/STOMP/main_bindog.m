@@ -9,13 +9,13 @@ clc
 v_max = 1;
 
 % Parameters
-num_paths = 50;
+num_paths = 100;
 num_its = 20;
 
 %% Creating the initial path
-start_point = [1, 1, 0];
-center_point = [4.5, 4.5, 0];
-end_point = [10, 10, 0];
+start_point = [1, 10, 0];
+center_point = [10, 10, 0];
+end_point = [10, 1, 0];
 
 num_waypoints = 30;
 N = num_waypoints;
@@ -23,22 +23,32 @@ N = num_waypoints;
 path = zeros(num_waypoints,3);
 path(1,:) = start_point;
 path(num_waypoints,:) = end_point;
+path(num_waypoints/2,:) = center_point;
 
-x_step_1 = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
-y_step_1 = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
+x_step_1 = (center_point(1) - path(1,1)) / (num_waypoints / 2 - 1);
+y_step_1 = (center_point(2) - path(1,2)) / (num_waypoints / 2 - 1);
 
-x_step_2 = abs(path(1,1)-path(num_waypoints,1)) / (num_waypoints - 1);
-y_step_2 = abs(path(1,2)-path(num_waypoints,2)) / (num_waypoints - 1);
+x_step_2 = (path(num_waypoints,1) - center_point(1)) / (num_waypoints / 2 - 1);
+y_step_2 = (path(num_waypoints,2) - center_point(2)) / (num_waypoints / 2 - 1);
 
-t_init = sqrt(x_step^2 + y_step^2) / v_max;
+t_init_1 = sqrt(x_step_1^2 + y_step_1^2) / v_max;
+t_init_2 = sqrt(x_step_2^2 + y_step_2^2) / v_max;
 
-path(:,3) = t_init;
+path(1:num_waypoints/2,3) = t_init_1;
+path(num_waypoints/2:num_waypoints,3) = t_init_1;
 path(num_waypoints,3) = 0;
 
-for i = 2:num_waypoints-1
-    path(i,1) = path(i-1,1) + x_step;
-    path(i,2) = path(i-1,2) + y_step;
+for i = 2:num_waypoints/2-1
+    path(i,1) = path(i-1,1) + x_step_1;
+    path(i,2) = path(i-1,2) + y_step_1;
 end
+
+for i = num_waypoints/2 + 1:num_waypoints-1
+    path(i,1) = path(i-1,1) + x_step_2;
+    path(i,2) = path(i-1,2) + y_step_2;
+end
+
+plot(path(:,1),path(:,2),'-x')
 
 %% Starting Calculations
 
@@ -90,7 +100,7 @@ cov_array(:,:,2) = cov_mat;
 tot_cost = zeros(num_its,1);
 K = num_paths;
 
-mag = .25;
+mag = .15;
 
 for m = 1:num_its
     display(m)
@@ -103,7 +113,10 @@ for m = 1:num_its
     for i = 1:K
         temp_eps = mvnrnd(zeros(2,N),cov_array) * mag;
         temp_eps = temp_eps.';
-
+        
+%         display(temp_eps)
+%         waitforbuttonpress
+        
         temp_eps(1,1) = 0;
         temp_eps(1,2) = 0;
 

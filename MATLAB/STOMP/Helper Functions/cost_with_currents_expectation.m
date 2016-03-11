@@ -42,6 +42,30 @@ function [cost] = cost_with_currents_expectation(w1, w2, w3, u, v, v_max, size)
     x_index_3 = int8(l / size(2) * x_3) + 1;
     y_index_3 = int8(l / size(1) * y_3) + 1;
     
+    if x_index_1 > l
+        x_index_1 = l;
+    end
+    
+    if x_index_2 > l
+        x_index_2 = l;
+    end
+    
+    if x_index_3 > l
+        x_index_3 = l;
+    end
+    
+    if y_index_1 > l
+        y_index_1 = l;
+    end
+    
+    if y_index_2 > l
+        y_index_2 = l;
+    end
+    
+    if y_index_3 > l
+        y_index_3 = l;
+    end
+    
     if (isnan(u(y_index_1, x_index_1)) || isnan(u(y_index_2, x_index_2)) || isnan(u(y_index_3, x_index_3)) || isnan(v(y_index_1, x_index_1)) || isnan(v(y_index_2, x_index_2)) || isnan(v(y_index_3, x_index_3)))
         % Should make this a function of how deep it is into the object
         cost = O^2;

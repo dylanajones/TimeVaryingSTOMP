@@ -9,8 +9,8 @@ close all
 clc
 
 v_max = 2;
-num_paths = 10;
-num_its = 25;
+num_paths = 15;
+num_its = 100;
 decay_fact = .99;
 
 %% Creating the Current Map
@@ -20,8 +20,8 @@ decay_fact = .99;
 %% Creating the initial path
 
 % making a start and goal
-start_point = [2, 2, 0];
-end_point = [8, 8, 0];
+start_point = [1, 1, 0];
+end_point = [9, 9, 0];
 
 % Setting the number of waypoints including the start and goal
 num_waypoints = 50;
@@ -406,7 +406,10 @@ end
 title('Individual Waypoint Costs')
 hold off
 
-
+energy_cost = 0;
+for i = 1:length(path)-1
+    energy_cost = energy_cost + cost_to_move(path(i,:),path(i+1,:),u,v,[10,10]);
+end
 
 
 
