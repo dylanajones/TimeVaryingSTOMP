@@ -4,7 +4,7 @@ function [cost] = cost_with_currents_expectation(w1, w2, w3, u, v, v_max, size)
     
     % Constants for calculations
     cost = 0;
-    L = 10;
+    L = 1000;
     factor = 5;
     c_d = 3;
     

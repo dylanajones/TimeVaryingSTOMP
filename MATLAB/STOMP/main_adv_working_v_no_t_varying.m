@@ -10,6 +10,10 @@ num_paths = 10;
 num_its = 100;
 decay_fact = .99;
 
+%% Creating the Current Map
+
+[u,v,q_x,q_y] = current_gen(2);
+
 %% Creating the initial path
 start_point = [1, 1, 0];
 end_point = [9, 9, 0];
@@ -67,6 +71,13 @@ smooth_cost = zeros(num_its,1);
 waypoint_cost = zeros(num_its,1);
 cost_by_waypoint = zeros(N,num_its);
 decay_it = decay_fact;
+
+figure(2)
+hold on
+    
+quiver(q_x,q_y,u,v)
+
+hold off
 
 for m = 1:num_its
     
@@ -177,19 +188,24 @@ for m = 1:num_its
 
     % Loop to calculate all the costs for the noisy paths
     for i = 1:K
-        for j = 1:N-1
+        for j = 2:N-1
             waypoint1 = zeros(1,3);
             waypoint2 = zeros(1,3);
+            waypoint3 = zeros(1,3);
 
-            waypoint1(1) = noisy_paths(i,1,j);
-            waypoint1(2) = noisy_paths(i,2,j);
-            waypoint1(3) = noisy_paths(i,3,j);
+            waypoint1(1) = noisy_paths(i,1,j-1);
+            waypoint1(2) = noisy_paths(i,2,j-1);
+            waypoint1(3) = noisy_paths(i,3,j-1);
             
-            waypoint2(1) = noisy_paths(i,1,j+1);
-            waypoint2(2) = noisy_paths(i,2,j+1);
-            waypoint2(3) = noisy_paths(i,3,j+1);
+            waypoint2(1) = noisy_paths(i,1,j);
+            waypoint2(2) = noisy_paths(i,2,j);
+            waypoint2(3) = noisy_paths(i,3,j);
+            
+            waypoint3(1) = noisy_paths(i,1,j+1);
+            waypoint3(2) = noisy_paths(i,2,j+1);
+            waypoint3(3) = noisy_paths(i,3,j+1);
 
-            cost_mat(j,i) = cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+            cost_mat(j,i) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         end   
     end
 
@@ -242,25 +258,25 @@ for m = 1:num_its
 
     figure(2)
     hold on
-    [X,Y] = meshgrid(0:.1:10);
-    Z = 100 .* abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
-    %Z = sin(2*X) + sin(2*Y) + 3;
-    pcolor(X,Y,Z);
-    shading flat;
+%     [X,Y] = meshgrid(0:.1:10);
+%     Z = 100 .* abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
+%     %Z = sin(2*X) + sin(2*Y) + 3;
+%     pcolor(X,Y,Z);
+%     shading flat;
     
     plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
     hold off
     
     figure(3)
     hold on
-    v_path = cal_velocities(path);
-    v_new_path = cal_velocities(new_path);
+    v_path = cal_velocities_curr(path,u,v,[10,10]);
+    v_new_path = cal_velocities_curr(new_path,u,v,[10,10]);
     plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
     hold off
     
     avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
     
-    pause(.1)
+    %pause(.1)
     
 %     % Handling the two end cases
 %     T(1,1) = 1 / (path(1,3) ^ 2);
@@ -280,22 +296,27 @@ for m = 1:num_its
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
     smooth_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
 
-    for j = 1:N-1
+    for j = 2:N-1
         waypoint1 = zeros(1,3);
         waypoint2 = zeros(1,3);
+        waypoint3 = zeros(1,3);
 
-        waypoint1(1) = path(j,1);
-        waypoint1(2) = path(j,2);
-        waypoint1(3) = path(j,3);
+        waypoint1(1) = path(j-1,1);
+        waypoint1(2) = path(j-1,2);
+        waypoint1(3) = path(j-1,3);
 
-        waypoint2(1) = path(j+1,1);
-        waypoint2(2) = path(j+1,2);
-        waypoint2(3) = path(j+1,3);
+        waypoint2(1) = path(j,1);
+        waypoint2(2) = path(j,2);
+        waypoint2(3) = path(j,3);
 
-        tot_cost(m) = tot_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
-        waypoint_cost(m) = waypoint_cost(m) + cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+        waypoint3(1) = path(j+1,1);
+        waypoint3(2) = path(j+1,2);
+        waypoint3(3) = path(j+1,3);
+
+        tot_cost(m) = tot_cost(m) + cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         
-        cost_by_waypoint(j,m) = cost_function_mult_waypoint(waypoint1,waypoint2,v_max);
+        cost_by_waypoint(j,m) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
 
     end   
     
@@ -329,3 +350,8 @@ for i = 1:num_its
 end
 title('Individual Waypoint Costs')
 hold off
+
+energy_cost = 0;
+for i = 1:length(path)-1
+    energy_cost = energy_cost + cost_to_move(path(i,:),path(i+1,:),u,v,[10,10]);
+end

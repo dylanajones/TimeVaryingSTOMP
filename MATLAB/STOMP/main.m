@@ -143,7 +143,7 @@ for m = 1:num_its
         means = zeros(3,N);
         %means(3,:) = ones(1,N) * .1; %Attempt to offset the time 
         temp_eps = mvnrnd(means,cov_array) * decay_it;
-        temp_eps(3,:) = temp_eps(3,:) * .1;
+        temp_eps(3,:) = temp_eps(3,:) * .2;
         temp_eps = temp_eps.';
         
         % Ensuring that start and end goals do not move
@@ -316,7 +316,7 @@ for m = 1:num_its
     
     avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
     
-    pause(.1)
+    %pause(.1)
     
     path(:,:) = new_path;
     

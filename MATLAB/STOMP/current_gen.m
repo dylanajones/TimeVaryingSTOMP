@@ -39,8 +39,8 @@ function [u,v,q_x,q_y] = current_gen(flag)
             end
         end
         
-        u = u / 2.5;
-        v = v / 2.5;
+        u = u / 5;
+        v = v / 5;
         
         figure(90)
         title('Current Plot')
