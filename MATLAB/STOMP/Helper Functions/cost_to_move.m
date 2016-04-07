@@ -22,6 +22,38 @@ function [cost] = cost_to_move(w1,w2,u,v,size)
     x_index_2 = int8(l / size(2) * x_2) + 1;
     y_index_2 = int8(l / size(1) * y_2) + 1;
     
+    if x_index_1 > l
+        x_index_1 = l;
+    end
+    
+    if x_index_2 > l
+        x_index_2 = l;
+    end
+    
+    if y_index_1 > l
+        y_index_1 = l;
+    end
+    
+    if y_index_2 > l
+        y_index_2 = l;
+    end
+    
+    if x_index_1 < 1
+        x_index_1 = 1;
+    end
+    
+    if x_index_2 < 1
+        x_index_2 = 1;
+    end
+    
+    if y_index_1 < 1
+        y_index_1 = 1;
+    end
+    
+    if y_index_2 < 1
+        y_index_2 = 1;
+    end
+    
     u_avg_12 = (u(y_index_1, x_index_1) + u(y_index_2, x_index_2)) / 2;
     v_avg_12 = (v(y_index_1, x_index_1) + v(y_index_2, x_index_2)) / 2;
     

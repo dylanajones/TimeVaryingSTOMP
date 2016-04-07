@@ -1,7 +1,7 @@
 % Function to do Cost Function with Currents
 
 function [cost] = cost_with_currents_expectation(w1, w2, w3, u, v, v_max, size)
-    
+
     % Constants for calculations
     cost = 0;
     L = 1000;
@@ -46,24 +46,48 @@ function [cost] = cost_with_currents_expectation(w1, w2, w3, u, v, v_max, size)
         x_index_1 = l;
     end
     
+    if x_index_1 < 1
+        x_index_1 = 1;
+    end
+    
     if x_index_2 > l
         x_index_2 = l;
+    end
+    
+    if x_index_2 < 1
+        x_index_2 = 1;
     end
     
     if x_index_3 > l
         x_index_3 = l;
     end
     
+    if x_index_3 < 1
+        x_index_3 = 1;
+    end
+    
     if y_index_1 > l
         y_index_1 = l;
+    end
+    
+    if y_index_1 < 1
+        y_index_1 = 1;
     end
     
     if y_index_2 > l
         y_index_2 = l;
     end
     
+    if y_index_2 < 1
+        y_index_2 = 1;
+    end
+    
     if y_index_3 > l
         y_index_3 = l;
+    end
+    
+    if y_index_3 < 1
+        y_index_3 = 1;
     end
     
     if (isnan(u(y_index_1, x_index_1)) || isnan(u(y_index_2, x_index_2)) || isnan(u(y_index_3, x_index_3)) || isnan(v(y_index_1, x_index_1)) || isnan(v(y_index_2, x_index_2)) || isnan(v(y_index_3, x_index_3)))
@@ -109,6 +133,11 @@ function [cost] = cost_with_currents_expectation(w1, w2, w3, u, v, v_max, size)
             %display('option 3')
             cost = cost + L + (vel_req_23 - v_max) * L^2;
         end
+
+%         if vel_req_23 > v_max
+%             display('too fast needed...')
+%             cost = cost + L + (vel_req_23 - v_max) * L^2;
+%         end
 
         % Adding in an energy cost
         % cost = cost + c_d * vel_req ^ 3 * t_1;

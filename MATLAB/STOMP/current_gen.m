@@ -18,9 +18,9 @@ function [u,v,q_x,q_y] = current_gen(flag)
             end
         end
 
-        figure(90)
-        title('Current Plot')
-        quiver(q_x,q_y,u,v)
+%         figure(90)
+%         title('Current Plot')
+%         quiver(q_x,q_y,u,v)
 
 % Circular Current Field
 %   -This current field is circular and stronger as you go outward
@@ -42,9 +42,9 @@ function [u,v,q_x,q_y] = current_gen(flag)
         u = u / 5;
         v = v / 5;
         
-        figure(90)
-        title('Current Plot')
-        quiver(q_x,q_y,u,v)
+%         figure(90)
+%         title('Current Plot')
+%         quiver(q_x,q_y,u,v)
 
 
 
@@ -69,9 +69,9 @@ function [u,v,q_x,q_y] = current_gen(flag)
             end
         end
 
-        figure(90)
-        title('Current Plot')
-        quiver(q_x,q_y,u,v)
+%         figure(90)
+%         title('Current Plot')
+%         quiver(q_x,q_y,u,v)
     end
 end
 
