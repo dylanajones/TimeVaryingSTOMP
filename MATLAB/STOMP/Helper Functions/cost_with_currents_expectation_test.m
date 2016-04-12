@@ -1,9 +1,8 @@
 % Function to do Cost Function with Currents
 
-% TODO:
-%   - Need to set up what to do when NAN is encountered
 
 function [cost] = cost_with_currents_expectation_test(w1, w2, w3, u, v, v_max, size)
+%function [cost] = cost_with_currents_expectation_test(w1, w2, w3, v_max, size)
     
     % Constants for calculations
     cost = 0;
@@ -14,7 +13,7 @@ function [cost] = cost_with_currents_expectation_test(w1, w2, w3, u, v, v_max, s
     l = length(u);
     
     % Constant for object checking
-    O = 100;
+    O = 1000;
     
     % Making the points
     x_1 = w1(1);
@@ -70,9 +69,9 @@ function [cost] = cost_with_currents_expectation_test(w1, w2, w3, u, v, v_max, s
         u_req_13 = (x_3 - x_1) / t_13 - u_avg_13;
         v_req_13 = (y_3 - y_1) / t_13 - v_avg_13;
 
-        abs_vel_12 = sqrt(((x_2 - x_1) / t_1)^2 + ((y_2 - y_1) / t_1)^2);
+        %abs_vel_12 = sqrt(((x_2 - x_1) / t_1)^2 + ((y_2 - y_1) / t_1)^2);
         abs_vel_23 = sqrt(((x_3 - x_2) / t_2)^2 + ((y_3 - y_2) / t_2)^2);
-        abs_vel_13 = sqrt(((x_3 - x_1) / t_13)^2 + ((y_3 - y_1) / t_13)^2);
+        %abs_vel_13 = sqrt(((x_3 - x_1) / t_13)^2 + ((y_3 - y_1) / t_13)^2);
 
         vel_req_12 = sqrt(u_req_12^2 + v_req_12^2);
         vel_req_23 = sqrt(u_req_23^2 + v_req_23^2);

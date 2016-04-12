@@ -115,9 +115,9 @@ function [cost] = cost_with_currents_expectation(w1, w2, w3, u, v, v_max, size)
         u_req_13 = (x_3 - x_1) / t_13 - u_avg_13;
         v_req_13 = (y_3 - y_1) / t_13 - v_avg_13;
 
-        abs_vel_12 = sqrt(((x_2 - x_1) / t_1)^2 + ((y_2 - y_1) / t_1)^2);
+        %abs_vel_12 = sqrt(((x_2 - x_1) / t_1)^2 + ((y_2 - y_1) / t_1)^2);
         abs_vel_23 = sqrt(((x_3 - x_2) / t_2)^2 + ((y_3 - y_2) / t_2)^2);
-        abs_vel_13 = sqrt(((x_3 - x_1) / t_13)^2 + ((y_3 - y_1) / t_13)^2);
+        %abs_vel_13 = sqrt(((x_3 - x_1) / t_13)^2 + ((y_3 - y_1) / t_13)^2);
 
         vel_req_12 = sqrt(u_req_12^2 + v_req_12^2);
         vel_req_23 = sqrt(u_req_23^2 + v_req_23^2);

@@ -4,7 +4,7 @@
 %   -Still getting NAN problems sometimes. Investigate and figure out why
 
 %% Initial Setup
-clear -except enegy_cost_mat
+clearvars -except energy_cost_mat p num_runs time_mat path_mat
 close all
 clc
 
@@ -14,6 +14,8 @@ num_its = 100;
 num_start = 10;
 decay_fact = .99;
 threshold = 700;
+plot_flag = 1;
+change_factor = .001;
 
 %% Creating the Current Map
 
@@ -97,13 +99,14 @@ energy_cost = zeros(num_start,1);
 % Initializing the decay factor of exploration
 decay_it = decay_fact;
 
-
-figure(2)
-hold on
+if plot_flag == 1
+    figure(2)
+    hold on
     
-quiver(q_x,q_y,u,v)
+    quiver(q_x,q_y,u,v)
 
-hold off
+    hold off
+end
 % Path improvement loop - currently just running for a given number of
 % iterations but would eventually be done until convergence
 tic
@@ -195,28 +198,31 @@ while (flag && m <= num_its)
     temp_noisy_path = path(:,:) + temp_eps;
     eps_mat(K,:,:) = temp_eps.';
     noisy_paths(K,:,:) = temp_noisy_path.';
-
-%     % Code to plot all the perturbed paths
-    figure(1)
-    clf
-    hold on
     
-    quiver(q_x,q_y,u,v)
     
-    x = zeros(N,1);
-    y = x;
+    if plot_flag == 1
+    %     % Code to plot all the perturbed paths
+        figure(1)
+        clf
+        hold on
 
-    for i = 1:K
-        for j = 1:N
-            x(j) = noisy_paths(i,1,j);
-            y(j) = noisy_paths(i,2,j);
+        quiver(q_x,q_y,u,v)
+
+        x = zeros(N,1);
+        y = x;
+
+        for i = 1:K
+            for j = 1:N
+                x(j) = noisy_paths(i,1,j);
+                y(j) = noisy_paths(i,2,j);
+            end
+            plot(x,y,'g-x');
         end
-        plot(x,y,'g-x')
+
+        plot(path(:,1),path(:,2),'r-x');
+
+        hold off
     end
-    
-    plot(path(:,1),path(:,2),'r-x')
-    
-    hold off
 
     cost_mat = zeros(N,K);
 
@@ -312,25 +318,26 @@ while (flag && m <= num_its)
     
     new_path = path(:,:) + update_vector;
 
+    if plot_flag == 1
+        figure(2)
+        hold on
 
-    figure(2)
-    hold on
-    
-    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
-    hold off
+        plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+        hold off
     
     % Need to update this plotting function -> Needs to be required
     % velocity, not just absolute velocity
-    figure(3)
-    hold on
-    v_path = cal_velocities_curr(path,u,v,[10,10]);
-    v_new_path = cal_velocities_curr(new_path,u,v,[10,10]);
-    plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
-    hold off
+        figure(3)
+        hold on
+        v_path = cal_velocities_curr(path,u,v,[10,10]);
+        v_new_path = cal_velocities_curr(new_path,u,v,[10,10]);
+        plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
+        hold off
     
-    avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
     
-    pause(.1)
+        avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
+    end
+%     pause(.1)
     
     path(:,:) = new_path;
     
@@ -393,7 +400,7 @@ while (flag && m <= num_its)
 %     waitforbuttonpress
 
     if m > 1
-        if (~((tot_cost(m-1) - tot_cost(m)) > (.01 * tot_cost(m))) && (tot_cost(m) < threshold))
+        if (~((tot_cost(m-1) - tot_cost(m)) > (change_factor * tot_cost(m))) && (tot_cost(m) < threshold))
             flag = false;
             %display('stopping for cost reasons')
         end
@@ -402,36 +409,41 @@ while (flag && m <= num_its)
     m = m + 1;
     
 end
-toc
-% figure(2)
-% hold on
-% 
-% plot(path(:,1),path(:,2),'b','LineWidth',1.2)
-% hold off
-% 
-% 
-% figure(4)
-% plot(1:num_its,tot_cost)
-% title('Total Cost')
-% % 
-% % figure(5)
-% % plot(1:num_its,smooth_cost)
-% % title('Smoothing Cost')
-% % 
-% figure(6)
-% plot(1:num_its,waypoint_cost)
-% title('Waypoint Cost')
-% 
-% figure(7)
-% hold on
-% for i = 1:num_its
-%     if i < num_its / 2
-%         plot(1:N,cost_by_waypoint(:,i),'r')
-%     else
-%         plot(1:N,cost_by_waypoint(:,i),'b')
-%     end
-% end
-% title('Individual Waypoint Costs')
-% hold off
+time = toc;
+
+display(energy_cost(m-1))
+
+if plot_flag == 1
+    figure(2)
+    hold on
+
+    plot(path(:,1),path(:,2),'b','LineWidth',1.2)
+    hold off
+
+
+    figure(4)
+    plot(1:length(tot_cost),tot_cost)
+    title('Total Cost')
+    
+    figure(5)
+    plot(1:length(smooth_cost),smooth_cost)
+    title('Smoothing Cost')
+    
+    figure(6)
+    plot(1:length(waypoint_cost),waypoint_cost)
+    title('Waypoint Cost')
+
+    figure(7)
+    hold on
+    for i = 1:length(cost_by_waypoint(1,:))
+        if i < length(cost_by_waypoint(1,:)) / 2
+            plot(1:N,cost_by_waypoint(:,i),'r')
+        else
+            plot(1:N,cost_by_waypoint(:,i),'b')
+        end
+    end
+    title('Individual Waypoint Costs')
+    hold off
+end
 
 

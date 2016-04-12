@@ -1,7 +1,7 @@
 % Implementation of STOMP Algorithm
 
 %% Initial Setup
-clear all
+clear
 close all
 clc
 

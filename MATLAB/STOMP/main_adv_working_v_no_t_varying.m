@@ -1,14 +1,18 @@
 % Implementation of STOMP Algorithm
 
 %% Initial Setup
-clear all
+clearvars -except energy_cost_mat p num_runs time_mat path_mat
 close all
 clc
 
 v_max = 2;
-num_paths = 10;
+num_paths = 15;
 num_its = 100;
+num_start = 10;
 decay_fact = .99;
+threshold = 600;
+plot_flag = 1;
+change_factor = .001;
 
 %% Creating the Current Map
 
@@ -38,6 +42,14 @@ for i = 2:num_waypoints-1
     path(i,2) = path(i-1,2) + y_step;
 end
 
+energy_cost = 0;
+for i = 1:length(path)-1
+    energy_cost = energy_cost + cost_to_move(path(i,:),path(i+1,:),u,v,[10,10]);
+end
+
+display('starting energy cost')
+display(energy_cost)
+
 %% Starting Calculations
 
 % Use balanced finite diff creation
@@ -66,23 +78,34 @@ end
 
 %% Iteration Step
 
-tot_cost = zeros(num_its,1);
-smooth_cost = zeros(num_its,1);
-waypoint_cost = zeros(num_its,1);
-cost_by_waypoint = zeros(N,num_its);
+% Creating variables for plotting puposes
+tot_cost = zeros(num_start,1);
+smooth_cost = zeros(num_start,1);
+waypoint_cost = zeros(num_start,1);
+cost_by_waypoint = zeros(N,num_start);
+avg_v = zeros(num_start,1);
+energy_cost = zeros(num_start,1);
+
+% Initializing the decay factor of exploration
 decay_it = decay_fact;
 
-figure(2)
-hold on
-    
-quiver(q_x,q_y,u,v)
+if plot_flag == 1
+    figure(2)
+    hold on
 
-hold off
+    quiver(q_x,q_y,u,v)
 
-for m = 1:num_its
+    hold off
+end
+
+tic
+m = 1;
+flag = true;
+
+while(flag && m <= num_its)
     
-    display(m)
-    display(decay_it)
+%     display(m)
+%     display(decay_it)
     % Creating the time multiplier matrix
 
     
@@ -165,24 +188,26 @@ for m = 1:num_its
     temp_noisy_path = path(:,:) + temp_eps;
     eps_mat(K,:,:) = temp_eps.';
     noisy_paths(K,:,:) = temp_noisy_path.';
+    
+    if plot_flag == 1
+        % Code to plot all the perturbed paths
+        figure(1)
+        clf
+        hold on
+        plot(path(:,1),path(:,2),'r-x')
 
-    % Code to plot all the perturbed paths
-    figure(1)
-    clf
-    hold on
-    plot(path(:,1),path(:,2),'r-x')
+        x = zeros(N,1);
+        y = x;
 
-    x = zeros(N,1);
-    y = x;
-
-    for i = 1:K
-        for j = 1:N
-            x(j) = noisy_paths(i,1,j);
-            y(j) = noisy_paths(i,2,j);
+        for i = 1:K
+            for j = 1:N
+                x(j) = noisy_paths(i,1,j);
+                y(j) = noisy_paths(i,2,j);
+            end
+            plot(x,y,'g-x')
         end
-        plot(x,y,'g-x')
+        hold off
     end
-    hold off
 
     cost_mat = zeros(N,K);
 
@@ -255,27 +280,22 @@ for m = 1:num_its
     
     new_path = path(:,:) + update_vector;
 
+    if plot_flag == 1
+        figure(2)
+        hold on
 
-    figure(2)
-    hold on
-%     [X,Y] = meshgrid(0:.1:10);
-%     Z = 100 .* abs(sin(sqrt((X-5).^2+(Y-5).^2))./sqrt((X-5).^2+(Y-5).^2));
-%     %Z = sin(2*X) + sin(2*Y) + 3;
-%     pcolor(X,Y,Z);
-%     shading flat;
-    
-    plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
-    hold off
-    
-    figure(3)
-    hold on
-    v_path = cal_velocities_curr(path,u,v,[10,10]);
-    v_new_path = cal_velocities_curr(new_path,u,v,[10,10]);
-    plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
-    hold off
-    
-    avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
-    
+        plot(path(:,1),path(:,2),'r',new_path(:,1),new_path(:,2),'g')
+        hold off
+
+        figure(3)
+        hold on
+        v_path = cal_velocities_curr(path,u,v,[10,10]);
+        v_new_path = cal_velocities_curr(new_path,u,v,[10,10]);
+        plot(1:length(v_path),v_path,'r',1:length(v_new_path),v_new_path,'g')
+        hold off
+
+        avg_v(m) = mean(v_new_path(2:length(v_new_path)-1));
+    end
     %pause(.1)
     
 %     % Handling the two end cases
@@ -314,6 +334,7 @@ for m = 1:num_its
         waypoint3(3) = path(j+1,3);
 
         tot_cost(m) = tot_cost(m) + cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        waypoint_cost(m) = 0;
         waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         
         cost_by_waypoint(j,m) = cost_with_currents_expectation(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
@@ -323,35 +344,53 @@ for m = 1:num_its
     
     decay_it = decay_it * decay_fact;
     
-    
-    
-end
-
-figure(4)
-plot(1:num_its,tot_cost)
-title('Total Cost')
-
-figure(5)
-plot(1:num_its,smooth_cost)
-title('Smoothing Cost')
-
-figure(6)
-plot(1:num_its,waypoint_cost)
-title('Waypoint Cost')
-
-figure(7)
-hold on
-for i = 1:num_its
-    if i < num_its / 2
-        plot(1:N,cost_by_waypoint(:,i),'r')
-    else
-        plot(1:N,cost_by_waypoint(:,i),'b')
+    energy_cost(m) = 0;
+    for i = 1:length(path)-1
+        energy_cost(m) = energy_cost(m) + cost_to_move(path(i,:),path(i+1,:),u,v,[10,10]);
     end
+    
+    if m > 1
+        if (~((tot_cost(m-1) - tot_cost(m)) > (change_factor * tot_cost(m))) && (tot_cost(m) < threshold))
+            flag = false;
+            %display('stopping for cost reasons')
+        end
+    end
+    
+    m = m + 1;
 end
-title('Individual Waypoint Costs')
-hold off
+time = toc;
 
-energy_cost = 0;
-for i = 1:length(path)-1
-    energy_cost = energy_cost + cost_to_move(path(i,:),path(i+1,:),u,v,[10,10]);
+display(energy_cost(m-1))
+
+if plot_flag == 1
+    figure(2)
+    hold on
+
+    plot(path(:,1),path(:,2),'b','LineWidth',1.2)
+    hold off
+
+
+    figure(4)
+    plot(1:length(tot_cost),tot_cost)
+    title('Total Cost')
+    
+    figure(5)
+    plot(1:length(smooth_cost),smooth_cost)
+    title('Smoothing Cost')
+    
+    figure(6)
+    plot(1:length(waypoint_cost),waypoint_cost)
+    title('Waypoint Cost')
+
+    figure(7)
+    hold on
+    for i = 1:length(cost_by_waypoint(1,:))
+        if i < length(cost_by_waypoint(1,:)) / 2
+            plot(1:N,cost_by_waypoint(:,i),'r')
+        else
+            plot(1:N,cost_by_waypoint(:,i),'b')
+        end
+    end
+    title('Individual Waypoint Costs')
+    hold off
 end

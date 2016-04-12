@@ -2,14 +2,18 @@
 %   -Current data is taken from ROMS data set
 
 %% Initial Setup
-clear all
+clearvars -except energy_cost_mat p num_runs time_mat path_mat
 close all
 clc
 
 v_max = 2;
-num_paths = 10;
-num_its = 25;
+num_paths = 20;
+num_its = 100;
 decay_fact = .99;
+plot_flag = 0;
+change_factor = .0005;
+threshold = 10000;
+num_start = 10;
 
 %% Creating the Current Map
 
@@ -91,57 +95,59 @@ for i = 1:n
     end
 end
 
-figure(50) 
-contourf(q_x,q_y,mag,'LineColor','none');
-caxis([0,max(max(mag))]); colormap (jet); 
-colorbar 
-hold on;
+if plot_flag == 1
+    figure(50) 
+    contourf(q_x,q_y,mag,'LineColor','none');
+    caxis([0,max(max(mag))]); colormap (jet); 
+    colorbar 
+    hold on;
 
-idx = ~isnan(u) & ~isnan(v);
+    idx = ~isnan(u) & ~isnan(v);
 
-quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
-hold off
+    quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
+    hold off
 
-figure(52)
+    figure(52)
 
-factor = 3;
+    factor = 3;
 
-contourf(q_x(1:factor:end,1:factor:end),q_y(1:factor:end,1:factor:end),mag(1:factor:end,1:factor:end),'LineColor','none');
-caxis([0,max(max(mag))]); colormap (jet); 
-c = colorbar;
-c.Label.String = 'Current Magnitude (m/s)';
-hold on;
+    contourf(q_x(1:factor:end,1:factor:end),q_y(1:factor:end,1:factor:end),mag(1:factor:end,1:factor:end),'LineColor','none');
+    caxis([0,max(max(mag))]); colormap (jet); 
+    c = colorbar;
+    c.Label.String = 'Current Magnitude (m/s)';
+    hold on;
 
-idx = ~isnan(u) & ~isnan(v);
+    idx = ~isnan(u) & ~isnan(v);
 
-q_x_a = q_x(idx);
-q_y_a = q_y(idx);
-u_a = u(idx);
-v_a = v(idx);
+    q_x_a = q_x(idx);
+    q_y_a = q_y(idx);
+    u_a = u(idx);
+    v_a = v(idx);
 
-quiver(q_x_a(1:factor:end,1:factor:end),q_y_a(1:factor:end,1:factor:end),u_a(1:factor:end,1:factor:end),v_a(1:factor:end,1:factor:end),'LineWidth',1,'Color','k');
-hold off
+    quiver(q_x_a(1:factor:end,1:factor:end),q_y_a(1:factor:end,1:factor:end),u_a(1:factor:end,1:factor:end),v_a(1:factor:end,1:factor:end),'LineWidth',1,'Color','k');
+    hold off
 
-figure(51)
-contourf(q_x_m,q_y_m,mag,'LineColor','none');
-caxis([0,max(max(mag))]); colormap (jet); 
-colorbar 
-hold on;
+    figure(51)
+    contourf(q_x_m,q_y_m,mag,'LineColor','none');
+    caxis([0,max(max(mag))]); colormap (jet); 
+    colorbar 
+    hold on;
 
-idx = ~isnan(u) & ~isnan(v);
+    idx = ~isnan(u) & ~isnan(v);
 
-quiver(q_x_m(idx),q_y_m(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
-hold off
+    quiver(q_x_m(idx),q_y_m(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
+    hold off
 
-% figure 
-% contourf(q_x(30:50,70:100),q_y(30:50,70:100),mag(30:50,70:100),'LineColor','none');
-% caxis([0,max(max(mag))]); colormap (jet); 
-% colorbar 
-% hold on;
-% 
-% idx = ~isnan(u) & ~isnan(v);
-% 
-% quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
+    figure 
+    contourf(q_x(30:50,70:100),q_y(30:50,70:100),mag(30:50,70:100),'LineColor','none');
+    caxis([0,max(max(mag))]); colormap (jet); 
+    colorbar 
+    hold on;
+
+    idx = ~isnan(u) & ~isnan(v);
+
+    quiver(q_x(idx),q_y(idx),u(idx),v(idx),'LineWidth',1,'Color','k');
+end
 
 %% Creating the initial path
 
@@ -214,33 +220,44 @@ end
 %% Iteration Step
 
 % Creating variables for plotting puposes
-tot_cost = zeros(num_its,1);
-smooth_cost = zeros(num_its,1);
-waypoint_cost = zeros(num_its,1);
-cost_by_waypoint = zeros(N,num_its);
-avg_v = zeros(num_its,1);
+tot_cost = zeros(num_start,1);
+smooth_cost = zeros(num_start,1);
+waypoint_cost = zeros(num_start,1);
+cost_by_waypoint = zeros(N,num_start);
+avg_v = zeros(num_start,1);
+energy_cost = zeros(num_start,1);
 
 % Initializing the decay factor of exploration
 decay_it = decay_fact;
 
 mag_step = .0007;
 
+% Speed-ups to Code factors
+size_y = max(max(q_y_m));
+size_x = max(max(q_x_m));
+
 % Plot with meters
-figure(2)
-set(gca,'Color',[0.8 0.8 0.8]);
-hold on
-contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
-caxis([0,max(max(mag))]); colormap (jet); 
-c = colorbar;
-c.Label.String = 'Current Magnitude (m/s)'; 
+if plot_flag == 1
+    figure(2)
+    set(gca,'Color',[0.8 0.8 0.8]);
+    hold on
+    contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
+    caxis([0,max(max(mag))]); colormap (jet); 
+    c = colorbar;
+    c.Label.String = 'Current Magnitude (m/s)'; 
 
-quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
-hold off
-
+    quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
+    hold off
+end
 
 % Path improvement loop - currently just running for a given number of
 % iterations but would eventually be done until convergence
-for m = 1:num_its
+
+m = 1;
+flag = true;
+
+tic
+while (flag && m <= num_its)
     
     % Creating R matrix
     R = D.'* T * T * D;
@@ -318,38 +335,40 @@ for m = 1:num_its
     noisy_paths(K,:,:) = temp_noisy_path.';
 
     % Code to plot all the perturbed paths
-    figure(1)
-    clf
-    
-    set(gca,'Color',[0.8 0.8 0.8]);
-    
-    % Plot with meters
-    contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
-    caxis([0,max(max(mag))]); colormap (jet); 
-    c = colorbar;
-    c.Label.String = 'Current Magnitude (m/s)';
-    
-    hold on;
+    if plot_flag == 1
+        figure(1)
+        clf
 
-    quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
+        set(gca,'Color',[0.8 0.8 0.8]);
 
-    
-    plot(path(:,1),path(:,2),'r-x')
+        % Plot with meters
+        contourf(q_x_m(30:50,70:100),q_y_m(30:50,70:100),mag(30:50,70:100),'LineColor','none');
+        caxis([0,max(max(mag))]); colormap (jet); 
+        c = colorbar;
+        c.Label.String = 'Current Magnitude (m/s)';
 
-    x = zeros(N,1);
-    y = x;
+        hold on;
 
-    for i = 1:K
-        for j = 1:N
-            x(j) = noisy_paths(i,1,j);
-            y(j) = noisy_paths(i,2,j);
+        quiver(q_x_m(30:50,70:100),q_y_m(30:50,70:100),u(30:50,70:100),v(30:50,70:100),'LineWidth',1,'Color','k');
+
+
+        plot(path(:,1),path(:,2),'r-x')
+
+        x = zeros(N,1);
+        y = x;
+
+        for i = 1:K
+            for j = 1:N
+                x(j) = noisy_paths(i,1,j);
+                y(j) = noisy_paths(i,2,j);
+            end
+            plot(x,y,'g-x')
         end
-        plot(x,y,'g-x')
+
+        plot(path(:,1),path(:,2),'w-x')
+
+        hold off
     end
-    
-    plot(path(:,1),path(:,2),'w-x')
-    
-    hold off
 
     cost_mat = zeros(N,K);
     
@@ -373,10 +392,8 @@ for m = 1:num_its
             waypoint3(2) = noisy_paths(i,2,j+1);
             waypoint3(3) = noisy_paths(i,3,j+1);
             
-            % Will need to work on the cost function code to ensure that
-            % they play well together - should just need to chnage last
-            % argument
-            cost_mat(j,i) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[max(max(q_y_m)),max(max(q_x_m))]);
+            cost_mat(j,i) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[size_y,size_x]);
+            %cost_mat(j,i) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,v_max,[size_y,size_x]);
         end   
     end
     
@@ -426,12 +443,14 @@ for m = 1:num_its
     
     new_path = path(:,:) + update_vector;
     
-    figure(2)
-    hold on
- 
-    plot(path(:,1),path(:,2),'r','LineWidth',1)
-    plot(new_path(:,1),new_path(:,2),'w','LineWidth',1)
-    hold off
+    if plot_flag == 1
+        figure(2)
+        hold on
+
+        plot(path(:,1),path(:,2),'r','LineWidth',1)
+        plot(new_path(:,1),new_path(:,2),'w','LineWidth',1)
+        hold off
+    end
     
     path(:,:) = new_path;
     
@@ -454,7 +473,7 @@ for m = 1:num_its
     % Creating R matrix
     R = D.'* T * T * D;
     
-    weight = 0.001;
+    weight = 0.01;
     tot_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
     smooth_cost(m) = weight * (.5 * path(:,1).'*R*path(:,1) + .5 * path(:,2).'*R*path(:,2));
 
@@ -475,7 +494,7 @@ for m = 1:num_its
         waypoint3(2) = path(j+1,2);
         waypoint3(3) = path(j+1,3);
 
-        %tot_cost(m) = tot_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
+        tot_cost(m) = tot_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[size_y,size_x]);
         %waypoint_cost(m) = waypoint_cost(m) + cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
         
         %cost_by_waypoint(j,m) = cost_with_currents_expectation_test(waypoint1,waypoint2,waypoint3,u,v,v_max,[10,10]);
@@ -484,16 +503,37 @@ for m = 1:num_its
     
     % Updating the decay factor
     decay_it = decay_it * decay_fact;
-    figure(99)
-    waitforbuttonpress;
+    
+    energy_cost(m) = 0;
+    for i = 1:length(path)-1
+        energy_cost(m) = energy_cost(m) + cost_to_move(path(i,:),path(i+1,:),u,v,[size_y,size_x]);
+    end
+    
+    if m > 1
+        if (~((tot_cost(m-1) - tot_cost(m)) > (change_factor * tot_cost(m))) && (tot_cost(m) < threshold))
+            flag = false;
+            display('stopping for cost reasons')
+        end
+    end
+    
+    m = m + 1;
+    
+%     figure(99)
+%     waitforbuttonpress;
+    if plot_flag == 1
+        pause(.5);
+    end
 end
+time = toc;
 
-figure(2)
-hold on
+if plot_flag == 1
+    figure(2)
+    hold on
 
-plot(path(:,1),path(:,2),'b','LineWidth',1.3)
+    plot(path(:,1),path(:,2),'b','LineWidth',1.3)
 
-hold off
+    hold off
+end
 
 
 
